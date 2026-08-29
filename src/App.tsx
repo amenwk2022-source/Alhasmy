@@ -454,6 +454,55 @@ export default function App() {
       ...prev,
       avatarUrl: photoUrl,
     }));
+    if (selectedMemberForCard) {
+      setSelectedMemberForCard(prev => prev ? ({ ...prev, avatarUrl: photoUrl }) : null);
+    }
+    if (selectedMemberForCert) {
+      setSelectedMemberForCert(prev => prev ? ({ ...prev, avatarUrl: photoUrl }) : null);
+    }
+  };
+
+  const handleUpdateMemberData = (updatedData: {
+    fullName?: string;
+    branch?: string;
+    subClan?: string;
+    membershipNumber?: string;
+    lineageChainSummary?: string;
+    nationalId?: string;
+    joinDate?: string;
+  }) => {
+    if (updatedData.fullName) {
+      setCurrentUser(prev => ({
+        ...prev,
+        fullName: updatedData.fullName || prev.fullName,
+        branch: updatedData.branch || prev.branch,
+        membershipNumber: updatedData.membershipNumber || prev.membershipNumber,
+        lineageChainSummary: updatedData.lineageChainSummary || prev.lineageChainSummary,
+      }));
+    }
+    if (selectedMemberForCard) {
+      setSelectedMemberForCard(prev => prev ? ({
+        ...prev,
+        fullName: updatedData.fullName || (prev as any).fullName || (prev as any).recipientName,
+        recipientName: updatedData.fullName || (prev as any).recipientName,
+        branch: updatedData.branch || prev.branch,
+        subClan: updatedData.subClan || (prev as any).subClan,
+        membershipNumber: updatedData.membershipNumber || prev.membershipNumber,
+        documentNumber: updatedData.membershipNumber || (prev as any).documentNumber,
+        lineageChainSummary: updatedData.lineageChainSummary || (prev as any).lineageChainSummary
+      } as any) : null);
+    }
+    if (selectedMemberForCert) {
+      setSelectedMemberForCert(prev => prev ? ({
+        ...prev,
+        fullName: updatedData.fullName || (prev as any).fullName || (prev as any).recipientName,
+        recipientName: updatedData.fullName || (prev as any).recipientName,
+        branch: updatedData.branch || prev.branch,
+        membershipNumber: updatedData.membershipNumber || prev.membershipNumber,
+        documentNumber: updatedData.membershipNumber || (prev as any).documentNumber,
+        lineageChainSummary: updatedData.lineageChainSummary || (prev as any).lineageChainSummary
+      } as any) : null);
+    }
   };
 
   // Admin Dashboard Actions
@@ -770,6 +819,7 @@ export default function App() {
             setSelectedMemberForCard(null);
           }}
           onUpdateMemberPhoto={handleUpdateMemberPhoto}
+          onUpdateMemberData={handleUpdateMemberData}
         />
       )}
 
@@ -780,6 +830,8 @@ export default function App() {
             setIsCertificateModalOpen(false);
             setSelectedMemberForCert(null);
           }}
+          onUpdateMemberPhoto={handleUpdateMemberPhoto}
+          onUpdateMemberData={handleUpdateMemberData}
         />
       )}
 

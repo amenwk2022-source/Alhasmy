@@ -374,3 +374,30 @@ export interface GenealogyReference {
   excerpt: string;
 }
 
+export interface OfficialDecree {
+  id: string;
+  decreeNumber: string; // e.g. "قرار رقم (١٢) لسنة ١٤٤٧ هـ"
+  decreeType: 'appointment' | 'administrative' | 'honorary' | 'general' | 'committee';
+  title: string;
+  issueDateHijri: string;
+  issueDateGregorian: string;
+  signatoryTitle: string;
+  signatoryName: string;
+  
+  // Appointment specific fields
+  isAppointment: boolean;
+  appointeeName?: string;
+  appointeeTitle?: string;
+  appointeePhotoUrl?: string;
+  appointeePosition?: string;
+  appointeeBranch?: string;
+  appointeeMembershipNo?: string;
+  appointeeCity?: string;
+
+  preamble: string;
+  articles: string[];
+  notes?: string;
+  officialStamp?: boolean;
+  createdAt: string;
+}
+

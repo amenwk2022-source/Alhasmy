@@ -16,7 +16,9 @@ import {
   Copy,
   MessageCircle,
   Loader2,
-  Facebook
+  Facebook,
+  Edit3,
+  Save
 } from 'lucide-react';
 import { toPng, toBlob } from 'html-to-image';
 import { PhotoUploadModal } from './PhotoUploadModal';
@@ -26,6 +28,14 @@ interface MemberCardModalProps {
   member: RegisteredMember | UserProfile | null;
   onClose: () => void;
   onUpdateMemberPhoto?: (photoUrl: string) => void;
+  onUpdateMemberData?: (updatedData: {
+    fullName?: string;
+    branch?: string;
+    subClan?: string;
+    membershipNumber?: string;
+    lineageChainSummary?: string;
+    nationalId?: string;
+  }) => void;
 }
 
 const PRESET_AVATARS = [
@@ -39,10 +49,12 @@ const PRESET_AVATARS = [
 export const MemberCardModal: React.FC<MemberCardModalProps> = ({ 
   member, 
   onClose,
-  onUpdateMemberPhoto
+  onUpdateMemberPhoto,
+  onUpdateMemberData
 }) => {
   const [downloaded, setDownloaded] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isEditingData, setIsEditingData] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string>(() => {
     if (!member) return '';
     return 'avatarUrl' in member && member.avatarUrl ? member.avatarUrl : PRESET_AVATARS[0];
@@ -52,19 +64,43 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
 
+  const initialMemberName = member ? ('fullName' in member ? member.fullName : ((member as any).name || (member as any).recipientName || 'الشريف المكرم')) : 'الشريف المكرم';
+  const initialMembershipNo = member ? (member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786') : 'BH-EG-1447-0786';
+  const initialBranchName = member ? (member.branch || 'الأشراف الجعافرة (أشراف الصعيد)') : 'الأشراف الجعافرة (أشراف الصعيد)';
+  const initialSubClan = member ? ('subClan' in member && member.subClan ? member.subClan : 'الفرع المعتمد') : 'الفرع المعتمد';
+  const initialJoinDate = member ? ('joinDateHijri' in member ? member.joinDateHijri : ((member as any).joinDate || (member as any).issueDateHijri || '1447/08/29 هـ')) : '1447/08/29 هـ';
+  const initialLineageChain = member ? (('lineageChainSummary' in member && member.lineageChainSummary)
+    ? member.lineageChainSummary 
+    : ((member as any).lineageChainText || 'سلسلة نسب شريفة متصلة إلى الدوحة الهاشمية المباركة وسيد شباب أهل الجنة والجد الجامع هاشم بن عبد مناف.')) : '';
+  const initialNationalId = member ? ('nationalId' in member && member.nationalId ? member.nationalId : '28904121402391') : '28904121402391';
+
+  const [memberName, setMemberName] = useState(initialMemberName);
+  const [membershipNo, setMembershipNo] = useState(initialMembershipNo);
+  const [branchName, setBranchName] = useState(initialBranchName);
+  const [subClan, setSubClan] = useState(initialSubClan);
+  const [joinDate, setJoinDate] = useState(initialJoinDate);
+  const [lineageChain, setLineageChain] = useState(initialLineageChain);
+  const [nationalId, setNationalId] = useState(initialNationalId);
+
   const cardRef = useRef<HTMLDivElement>(null);
 
   if (!member) return null;
 
-  const memberName = 'fullName' in member ? member.fullName : ((member as any).name || (member as any).recipientName || 'الشريف المكرم');
-  const membershipNo = member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786';
-  const branchName = member.branch || 'الأشراف الجعافرة (أشراف الصعيد)';
-  const subClan = 'subClan' in member && member.subClan ? member.subClan : 'الفرع المعتمد';
-  const joinDate = 'joinDateHijri' in member ? member.joinDateHijri : ((member as any).joinDate || (member as any).issueDateHijri || '1447/08/29 هـ');
-  const lineageChain = ('lineageChainSummary' in member && member.lineageChainSummary)
-    ? member.lineageChainSummary 
-    : ((member as any).lineageChainText || 'سلسلة نسب شريفة متصلة إلى الدوحة الهاشمية المباركة وسيد شباب أهل الجنة والجد الجامع هاشم بن عبد مناف.');
-  const nationalId = 'nationalId' in member && member.nationalId ? member.nationalId : '28904121402391';
+  const handleSaveDataChanges = () => {
+    if (onUpdateMemberData) {
+      onUpdateMemberData({
+        fullName: memberName,
+        branch: branchName,
+        subClan: subClan,
+        membershipNumber: membershipNo,
+        lineageChainSummary: lineageChain,
+        nationalId: nationalId
+      });
+    }
+    setShareSuccessMsg('تم حفظ وتحديث بيانات الكارنيه بنجاح');
+    setIsEditingData(false);
+    setTimeout(() => setShareSuccessMsg(null), 3000);
+  };
 
   const handlePrint = () => {
     window.print();
@@ -299,6 +335,17 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsEditingData(!isEditingData)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                isEditingData ? 'bg-[#064e3b] text-white shadow' : 'bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300'
+              }`}
+              title="تعديل بيانات الكارنيه والنسب"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>تعديل البيانات</span>
+            </button>
+
+            <button
               onClick={() => setIsPhotoModalOpen(true)}
               className="bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
               title="تعديل وتكييف أبعاد الصورة الشخصية"
@@ -315,6 +362,94 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Live Data Editor Panel for Card */}
+        {isEditingData && (
+          <div className="bg-[#fcfbf7] p-4 rounded-2xl border-2 border-[#d4af37] text-xs space-y-3 no-print animate-fadeIn shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-2">
+              <span className="font-heritage font-bold text-sm text-[#064e3b] flex items-center gap-1.5">
+                <Edit3 className="w-4 h-4 text-[#d4af37]" />
+                تعديل وتخصيص بيانات الكارنيه مباشرة:
+              </span>
+              <span className="text-[10px] text-slate-500">تحديث فوري ينعكس على الكارنيه والطباعة</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">الاسم الكامل للشريف *</label>
+                <input
+                  type="text"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">الفرع الهاشمي *</label>
+                <input
+                  type="text"
+                  value={branchName}
+                  onChange={(e) => setBranchName(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">البيت أو العشيرة</label>
+                <input
+                  type="text"
+                  value={subClan}
+                  onChange={(e) => setSubClan(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">كود القيد / رقم العضوية</label>
+                <input
+                  type="text"
+                  value={membershipNo}
+                  onChange={(e) => setMembershipNo(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">صيغة سلسلة النسب بظهر الكارنيه *</label>
+              <textarea
+                rows={2}
+                value={lineageChain}
+                onChange={(e) => setLineageChain(e.target.value)}
+                className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed font-heritage text-slate-800 focus:ring-1 focus:ring-[#064e3b] outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-slate-400">
+                * يمكنك أيضاً تغيير الصورة من زر (تكييف الصورة) بالأعلى
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingData(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDataChanges}
+                  className="bg-[#064e3b] hover:bg-[#0b6e54] text-white font-bold px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow cursor-pointer transition-all"
+                >
+                  <Save className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>اعتماد وحفظ التعديلات</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Card Flip & Theme Selector */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs no-print">

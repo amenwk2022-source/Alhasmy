@@ -4,9 +4,10 @@ import {
   LineageVerificationRequest, 
   AidApplication, 
   FamilyBranch, 
-  DiwanNotice,
-  UserProfile,
-  IssuedDocument
+  DiwanNotice, 
+  UserProfile, 
+  IssuedDocument,
+  OfficialDecree
 } from '../types';
 import { 
   ShieldCheck, 
@@ -35,20 +36,26 @@ import {
   Send, 
   Lock, 
   Building, 
-  RefreshCw,
-  GitFork,
-  Check,
-  Megaphone,
-  Layers,
-  Database,
-  LogOut,
-  CreditCard,
-  UserPlus,
-  Trash2,
-  Share2,
-  Edit3
+  RefreshCw, 
+  GitFork, 
+  Check, 
+  Megaphone, 
+  Layers, 
+  Database, 
+  LogOut, 
+  CreditCard, 
+  UserPlus, 
+  Trash2, 
+  Share2, 
+  Edit3,
+  ScrollText,
+  UserCheck,
+  Camera,
+  RotateCw
 } from 'lucide-react';
 import { EditIssuedDocModal } from './EditIssuedDocModal';
+import { OfficialDecreeModal } from './OfficialDecreeModal';
+import { PhotoUploadModal } from './PhotoUploadModal';
 
 interface AdminDashboardViewProps {
   members: RegisteredMember[];
@@ -89,7 +96,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onOpenPersonalTree,
   onAdminLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'issuance' | 'verifications' | 'members' | 'aid' | 'registry'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'decrees' | 'issuance' | 'verifications' | 'members' | 'aid' | 'registry'>('overview');
   
   // Search & Filters for Members
   const [searchTerm, setSearchTerm] = useState('');
@@ -199,6 +206,100 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [editingDocBannerName, setEditingDocBannerName] = useState<string>('');
+
+  // ==========================================
+  // OFFICIAL DECREES & APPOINTMENTS STATE
+  // ==========================================
+  const [decreesList, setDecreesList] = useState<OfficialDecree[]>(() => {
+    const saved = localStorage.getItem('bh_official_decrees');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'dec-1447-01',
+        decreeNumber: 'قرار رقم (٠١) لسنة ١٤٤٧ هـ',
+        decreeType: 'appointment',
+        isAppointment: true,
+        title: 'تعيين وتكليف أمين عام التجمع لمحافظات الصعيد والأشراف',
+        appointeeName: 'الشريف الشيخ عبد الرحمن بن صالح الجعفري الهاشمي',
+        appointeeTitle: 'السيد الشريف',
+        appointeePosition: 'أمين عام التجمع لمحافظات الصعيد ومصر العليا',
+        appointeeBranch: 'الأشراف الجعافرة (أشراف الصعيد)',
+        appointeeCity: 'قنا / أسوان',
+        appointeePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+        preamble: 'بناءً على النظام الأساسي واللائحة التنظيمية لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وحرصاً على تعزيز أواصر القربى وتفعيل النشاط الميداني والخدمي ورعاية شؤون أبناء العمومة في صعيد مصر، وبناءً على ما عرضه مكتب الأمانة العامة، قررنا ما هو آت:',
+        articles: [
+          'تعيين السيد الشريف / عبد الرحمن بن صالح الجعفري الهاشمي في منصب أمين عام التجمع لمحافظات الصعيد ومصر العليا.',
+          'يُكلف المذكور بتشكيل لجان المتابعة والتنسيق الميداني ورعاية شؤون العائلات الهاشمية وتمثيل التجمع في كافة المحافل الرسمية والشعبية.',
+          'يُعمل بهذا القرار من تاريخ صدوره، ويُخطر به أصحاب الشأن واللجان التنفيذية للعمل بموجبه ونشره باللوحة الرسمية للتجمع.'
+        ],
+        signatoryTitle: 'الأمين العام لتجمع السادة الأشراف بني هاشم بمصر',
+        signatoryName: 'الشريف / د. أحمد بن منصور الهاشمي',
+        issueDateHijri: '1447/08/15 هـ',
+        issueDateGregorian: '2026/08/15 م',
+        officialStamp: true,
+        createdAt: '2026-08-15'
+      },
+      {
+        id: 'dec-1447-02',
+        decreeNumber: 'قرار رقم (٠٢) لسنة ١٤٤٧ هـ',
+        decreeType: 'committee',
+        isAppointment: false,
+        title: 'تشكيل اللجنة العليا لتدقيق وتوثيق الأنساب والمشجرات الهاشمية',
+        preamble: 'بناءً على الصلاحيات المخولة للأمانة العامة لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وسعياً لصيانة الأنساب الشريفة وتدقيق الوثائق والمشجرات التاريخية، قررنا ما هو آت:',
+        articles: [
+          'تشكيل اللجنة العليا لتدقيق وتحقيق الأنساب برئاسة فضيلة السيد الشريف رئيس لجنة الأنساب وعضوية كبار المؤرخين والنسابين.',
+          'تختص اللجنة بفحص الوثائق التاريخية والحجج الشرعية وطلبات الانتساب الجديدة والتأكد من سلامة سلاسل النسب.',
+          'يُعمل بهذا القرار من تاريخ صدوره ويُلغى كل ما يتعارض معه من تعليمات سابقة.'
+        ],
+        signatoryTitle: 'رئيس الهيئة العليا لتجمع الأشراف بمصر',
+        signatoryName: 'فضيلة الشريف / د. عبد العزيز بن إبراهيم الحسني',
+        issueDateHijri: '1447/08/20 هـ',
+        issueDateGregorian: '2026/08/20 م',
+        officialStamp: true,
+        createdAt: '2026-08-20'
+      }
+    ];
+  });
+
+  const [selectedDecreeForModal, setSelectedDecreeForModal] = useState<OfficialDecree | null>(null);
+  const [isDecreeModalOpen, setIsDecreeModalOpen] = useState(false);
+  const [isDecreePhotoModalOpen, setIsDecreePhotoModalOpen] = useState(false);
+  const [decreeSavedMessage, setDecreeSavedMessage] = useState(false);
+  const [editingDecreeId, setEditingDecreeId] = useState<string | null>(null);
+  const [decreeFilter, setDecreeFilter] = useState<'all' | 'appointment' | 'administrative' | 'committee'>('all');
+  const [decreeSearch, setDecreeSearch] = useState('');
+
+  // Form State for Issuing a Decree
+  const [decreeForm, setDecreeForm] = useState({
+    isAppointment: true,
+    decreeType: 'appointment' as OfficialDecree['decreeType'],
+    decreeNumber: `قرار رقم (${(decreesList.length + 1).toString().padStart(2, '0')}) لسنة ١٤٤٧ هـ`,
+    title: 'تعيين وتكليف في منصب إداري',
+    selectedMemberId: '',
+    appointeeName: '',
+    appointeeTitle: 'السيد الشريف',
+    appointeePosition: 'أمين عام التجمع بمحافظة الجيزة',
+    appointeeBranch: 'الأشراف الجعافرة (أشراف الصعيد)',
+    appointeeCity: 'الجيزة / القاهرة',
+    appointeePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    preamble: 'بناءً على النظام الأساسي واللائحة التنظيمية لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وحرصاً على تفعيل دور الكفاءات وتطوير العمل الميداني والتواصلي بين أبناء العمومة، وبناءً على ما عرضه مكتب الأمانة العامة، ولما تقتضيه المصلحة العامة، قررنا ما هو آت:',
+    articles: [
+      'تعيين السيد الشريف / [الاسم] في منصب [المنصب] بتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية.',
+      'يُكلف المذكور بمباشرة مهام المنصب والتنسيق مع الأمانة العامة بالقاهرة وتمثيل التجمع ومتابعة شؤون أبناء العمومة.',
+      'يُعمل بهذا القرار من تاريخ صدوره، ويُخطر به أصحاب الشأن واللجان المختصة للعمل بموجبه ونشره باللوحة الرسمية.'
+    ],
+    signatoryTitle: 'الأمين العام لتجمع السادة الأشراف بني هاشم بمصر',
+    signatoryName: 'الشريف / د. أحمد بن منصور الهاشمي',
+    issueDateHijri: '1447/08/29 هـ',
+    issueDateGregorian: '2026/08/29 م',
+    notes: 'صادر من الأمانة العامة'
+  });
 
   // Calculate Statistics
   const totalMembers = members.length;
@@ -483,6 +584,221 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }
   };
 
+  // ==========================================
+  // DECREE MANAGEMENT ACTION HANDLERS
+  // ==========================================
+  const handleAutoGenerateDecreeText = (customName?: string, customPosition?: string, customBranch?: string, isAppt = decreeForm.isAppointment) => {
+    const name = customName !== undefined ? customName : decreeForm.appointeeName;
+    const position = customPosition !== undefined ? customPosition : decreeForm.appointeePosition;
+    const branch = customBranch !== undefined ? customBranch : decreeForm.appointeeBranch;
+
+    if (isAppt) {
+      const generatedTitle = position ? `تعيين وتكليف في منصب (${position})` : 'تعيين وتكليف إداري';
+      const generatedPreamble = `بناءً على النظام الأساسي واللائحة التنظيمية لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وحرصاً من الأمانة العامة على تفعيل دور الكفاءات وتطوير العمل الميداني ورعاية شؤون أبناء العمومة، وبناءً على ما عرضه مكتب الأمانة العامة، ولما تقتضيه المصلحة العامة، قررنا ما هو آت:`;
+      const generatedArticles = [
+        `تعيين السيد الشريف / ${name || '[اسم العضو المكلَّف]'} ${branch ? `(${branch})` : ''} في منصب ${position || '[المنصب الإداري]'} بتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية.`,
+        `يُكلف المذكور بمباشرة مهام المنصب والتنسيق مع الأمانة العامة بالقاهرة وتمثيل التجمع في كافة الفعاليات والمناسبات الرسمية ومتابعة شؤون أبناء العمومة.`,
+        `يُعمل بهذا القرار من تاريخ صدوره، ويُخطر به أصحاب الشأن واللجان التنفيذية للعمل بموجبه ونشره باللوحة الرسمية للتجمع.`
+      ];
+
+      setDecreeForm(prev => ({
+        ...prev,
+        title: generatedTitle,
+        preamble: generatedPreamble,
+        articles: generatedArticles
+      }));
+    } else {
+      setDecreeForm(prev => ({
+        ...prev,
+        title: prev.title || 'قرار تنظيمي وإداري عام',
+        preamble: `بناءً على الصلاحيات المخولة للأمانة العامة والهيئة العليا لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وسعياً لتنظيم أعمال التجمع وخدمة أهدافه السامية، قررنا ما هو آت:`,
+        articles: [
+          `اعتماد الضوابط واللوائح المنظمة لأعمال اللجان والمكاتب الميدانية للتجمع بكافة المحافظات.`,
+          `تتولى الأمانة العامة الإشراف والمتابعة المباشرة لتنفيذ بنود هذا القرار وإصدار التعليمات اللازمة.`,
+          `يُعمل بهذا القرار من تاريخ صدوره ويُلغى كل ما يتعارض معه من قرارات أو تعليمات سابقة.`
+        ]
+      }));
+    }
+  };
+
+  const handleSelectMemberForAppointee = (memberId: string) => {
+    if (!memberId) {
+      setDecreeForm(prev => ({ ...prev, selectedMemberId: '' }));
+      return;
+    }
+    const found = members.find(m => m.id === memberId);
+    if (found) {
+      setDecreeForm(prev => {
+        const newForm = {
+          ...prev,
+          selectedMemberId: memberId,
+          appointeeName: found.fullName,
+          appointeeBranch: found.branch,
+          appointeeCity: found.city,
+          appointeePhotoUrl: (found as any).avatarUrl || prev.appointeePhotoUrl
+        };
+        return newForm;
+      });
+      handleAutoGenerateDecreeText(found.fullName, decreeForm.appointeePosition, found.branch, true);
+    }
+  };
+
+  const handlePreviewDecree = () => {
+    const dec: OfficialDecree = {
+      id: editingDecreeId || `dec-custom-${Date.now()}`,
+      decreeNumber: decreeForm.decreeNumber,
+      decreeType: decreeForm.isAppointment ? 'appointment' : decreeForm.decreeType,
+      isAppointment: decreeForm.isAppointment,
+      title: decreeForm.title || (decreeForm.isAppointment ? 'قرار تعيين وتكليف إداري' : 'قرار تنظيمي عام'),
+      appointeeName: decreeForm.appointeeName,
+      appointeeTitle: decreeForm.appointeeTitle,
+      appointeePosition: decreeForm.appointeePosition,
+      appointeeBranch: decreeForm.appointeeBranch,
+      appointeeCity: decreeForm.appointeeCity,
+      appointeePhotoUrl: decreeForm.appointeePhotoUrl,
+      preamble: decreeForm.preamble,
+      articles: decreeForm.articles.filter(a => a.trim().length > 0),
+      signatoryName: decreeForm.signatoryName,
+      signatoryTitle: decreeForm.signatoryTitle,
+      issueDateHijri: decreeForm.issueDateHijri,
+      issueDateGregorian: decreeForm.issueDateGregorian,
+      officialStamp: true,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setSelectedDecreeForModal(dec);
+    setIsDecreeModalOpen(true);
+  };
+
+  const handleSaveDecree = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!decreeForm.title.trim()) {
+      alert('يرجى كتابة عنوان أو موضوع القرار');
+      return;
+    }
+    if (decreeForm.isAppointment && !decreeForm.appointeeName.trim()) {
+      alert('يرجى إدخال اسم العضو المعيَّن في القرار');
+      return;
+    }
+
+    if (editingDecreeId) {
+      const updated = decreesList.map(d => {
+        if (d.id === editingDecreeId) {
+          return {
+            ...d,
+            decreeNumber: decreeForm.decreeNumber,
+            decreeType: decreeForm.isAppointment ? 'appointment' as const : decreeForm.decreeType,
+            isAppointment: decreeForm.isAppointment,
+            title: decreeForm.title,
+            appointeeName: decreeForm.appointeeName,
+            appointeeTitle: decreeForm.appointeeTitle,
+            appointeePosition: decreeForm.appointeePosition,
+            appointeeBranch: decreeForm.appointeeBranch,
+            appointeeCity: decreeForm.appointeeCity,
+            appointeePhotoUrl: decreeForm.appointeePhotoUrl,
+            preamble: decreeForm.preamble,
+            articles: decreeForm.articles.filter(a => a.trim().length > 0),
+            signatoryName: decreeForm.signatoryName,
+            signatoryTitle: decreeForm.signatoryTitle,
+            issueDateHijri: decreeForm.issueDateHijri,
+            issueDateGregorian: decreeForm.issueDateGregorian
+          };
+        }
+        return d;
+      });
+
+      setDecreesList(updated);
+      localStorage.setItem('bh_official_decrees', JSON.stringify(updated));
+      setEditingDecreeId(null);
+      setDecreeSavedMessage(true);
+      setTimeout(() => setDecreeSavedMessage(false), 3500);
+      return;
+    }
+
+    const newDecree: OfficialDecree = {
+      id: `dec-${Date.now()}`,
+      decreeNumber: decreeForm.decreeNumber,
+      decreeType: decreeForm.isAppointment ? 'appointment' : decreeForm.decreeType,
+      isAppointment: decreeForm.isAppointment,
+      title: decreeForm.title,
+      appointeeName: decreeForm.appointeeName,
+      appointeeTitle: decreeForm.appointeeTitle,
+      appointeePosition: decreeForm.appointeePosition,
+      appointeeBranch: decreeForm.appointeeBranch,
+      appointeeCity: decreeForm.appointeeCity,
+      appointeePhotoUrl: decreeForm.appointeePhotoUrl,
+      preamble: decreeForm.preamble,
+      articles: decreeForm.articles.filter(a => a.trim().length > 0),
+      signatoryName: decreeForm.signatoryName,
+      signatoryTitle: decreeForm.signatoryTitle,
+      issueDateHijri: decreeForm.issueDateHijri,
+      issueDateGregorian: decreeForm.issueDateGregorian,
+      officialStamp: true,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    const updated = [newDecree, ...decreesList];
+    setDecreesList(updated);
+    localStorage.setItem('bh_official_decrees', JSON.stringify(updated));
+    setDecreeSavedMessage(true);
+    setTimeout(() => setDecreeSavedMessage(false), 3500);
+
+    // Prepare next sequential decree form
+    const nextNum = (updated.length + 1).toString().padStart(2, '0');
+    setDecreeForm(prev => ({
+      ...prev,
+      decreeNumber: `قرار رقم (${nextNum}) لسنة ١٤٤٧ هـ`,
+      title: 'تعيين وتكليف في منصب إداري',
+      appointeeName: '',
+      appointeePosition: 'أمين عام التجمع بمحافظة الإسكندرية',
+      selectedMemberId: ''
+    }));
+  };
+
+  const handleEditDecreeInForm = (dec: OfficialDecree) => {
+    setEditingDecreeId(dec.id);
+    setDecreeForm({
+      isAppointment: dec.isAppointment,
+      decreeType: dec.decreeType,
+      decreeNumber: dec.decreeNumber,
+      title: dec.title,
+      selectedMemberId: '',
+      appointeeName: dec.appointeeName || '',
+      appointeeTitle: dec.appointeeTitle || 'السيد الشريف',
+      appointeePosition: dec.appointeePosition || 'أمين عام التجمع',
+      appointeeBranch: dec.appointeeBranch || 'الأشراف الجعافرة (أشراف الصعيد)',
+      appointeeCity: dec.appointeeCity || 'القاهرة',
+      appointeePhotoUrl: dec.appointeePhotoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+      preamble: dec.preamble,
+      articles: dec.articles.length > 0 ? dec.articles : [''],
+      signatoryTitle: dec.signatoryTitle,
+      signatoryName: dec.signatoryName,
+      issueDateHijri: dec.issueDateHijri,
+      issueDateGregorian: dec.issueDateGregorian,
+      notes: dec.notes || ''
+    });
+
+    // Scroll smoothly to form
+    const anchor = document.getElementById('decree-form-anchor');
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleDeleteDecree = (decreeId: string) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا القرار من سجل الأرشيف الرسمي؟')) {
+      const updated = decreesList.filter(d => d.id !== decreeId);
+      setDecreesList(updated);
+      localStorage.setItem('bh_official_decrees', JSON.stringify(updated));
+    }
+  };
+
+  const handleUpdateDecreeFromModal = (updatedDec: OfficialDecree) => {
+    const updated = decreesList.map(d => d.id === updatedDec.id ? updatedDec : d);
+    setDecreesList(updated);
+    localStorage.setItem('bh_official_decrees', JSON.stringify(updated));
+    setSelectedDecreeForModal(updatedDec);
+  };
+
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastTitle || !broadcastContent) return;
@@ -530,11 +846,20 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
-              onClick={() => setActiveTab('issuance')}
+              id="admin-quick-decree-btn"
+              onClick={() => setActiveTab('decrees')}
               className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] font-black px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-xs sm:text-sm transition-all cursor-pointer"
             >
-              <Award className="w-4 h-4 text-[#064e3b]" />
-              <span>إصدار شهادة / كارنيه فوري</span>
+              <ScrollText className="w-4 h-4 text-[#064e3b]" />
+              <span>إصدار قرار رسمي / تعيين</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('issuance')}
+              className="bg-white/20 hover:bg-white/30 border border-[#d4af37]/60 text-white font-bold px-3.5 py-2.5 rounded-xl shadow flex items-center gap-2 text-xs sm:text-sm transition-all cursor-pointer"
+            >
+              <Award className="w-4 h-4 text-[#d4af37]" />
+              <span>إصدار شهادة / كارنيه</span>
             </button>
 
             <button
@@ -657,6 +982,24 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         >
           <Sparkles className="w-4 h-4 text-[#d4af37]" />
           <span>لوحة المهام والتعاميم</span>
+        </button>
+
+        <button
+          id="admin-tab-decrees-btn"
+          onClick={() => setActiveTab('decrees')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+            activeTab === 'decrees'
+              ? 'bg-[#064e3b] text-white shadow'
+              : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <ScrollText className="w-4 h-4 text-[#d4af37]" />
+          <span>إصدار القرارات والتعيينات الرسمية</span>
+          {decreesList.length > 0 && (
+            <span className="bg-[#d4af37] text-[#064e3b] text-[10px] px-1.5 py-0.5 rounded-full font-mono font-black">
+              {decreesList.length}
+            </span>
+          )}
         </button>
 
         <button
@@ -939,6 +1282,830 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: OFFICIAL DECREES & APPOINTMENTS (إصدار القرارات والتعيينات) */}
+      {/* ======================================================== */}
+      {activeTab === 'decrees' && (
+        <div className="space-y-8 animate-fadeIn">
+          
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-[#064e3b] via-[#0b6e54] to-[#043e2f] text-white rounded-3xl p-6 sm:p-8 border-2 border-[#d4af37] shadow-xl relative overflow-hidden">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none text-[#d4af37]">
+              <ScrollText className="w-64 h-64" />
+            </div>
+            
+            <div className="relative z-10 max-w-3xl space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-[#d4af37] text-[#064e3b] text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  منظومة القرارات الإدارية والتعيينات الرسمية
+                </span>
+                <span className="bg-emerald-800/80 text-emerald-200 border border-emerald-600 text-xs px-3 py-1 rounded-full font-mono">
+                  ترقيم تسلسلي تلقائي ومطابقة للأعراف الهاشمية
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black font-heritage text-white">
+                إصدار وتوثيق القرارات الرسمية وتعيينات المناصب
+              </h2>
+
+              <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
+                أداة متكاملة لكتابة وصياغة القرارات الإدارية والتعيينات الرسمية بتجمع السادة الأشراف بني هاشم، مع إمكانية رفع صورة العضو المعيَّن، وتوليد الديباجة التلقائية، وتصدير القرار بصورة فخمة عالية الجودة ومجهزة للمشاركة والطباعة.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Statistics Bar for Decrees */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#064e3b] flex items-center justify-center font-bold">
+                <ScrollText className="w-6 h-6 text-[#d4af37]" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-[#064e3b] font-mono">{decreesList.length}</div>
+                <div className="text-xs font-bold text-slate-500">إجمالي القرارات الصادرة بالأرشيف</div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                <UserCheck className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-amber-800 font-mono">
+                  {decreesList.filter(d => d.isAppointment).length}
+                </div>
+                <div className="text-xs font-bold text-slate-500">قرارات تعيين وتكليف إداري</div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-emerald-800 font-mono">
+                  {decreesList.filter(d => !d.isAppointment).length}
+                </div>
+                <div className="text-xs font-bold text-slate-500">قرارات لجان وتنظيم عام</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* DECREE ISSUANCE FORM */}
+          {/* ======================================================== */}
+          <div id="decree-form-anchor" className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#d4af37] shadow-xl space-y-6">
+            
+            {/* Edit Mode Notice if Editing */}
+            {editingDecreeId && (
+              <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm">
+                    ✏️
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-amber-900">
+                      أنت الآن في وضع تعديل القرار: {decreeForm.decreeNumber}
+                    </h4>
+                    <p className="text-xs text-amber-700">
+                      قم بتحديث أي بيان ثم اضغط على زر "حفظ التعديلات" أو عاين الصورة الفخمة.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingDecreeId(null);
+                    const nextNum = (decreesList.length + 1).toString().padStart(2, '0');
+                    setDecreeForm(prev => ({
+                      ...prev,
+                      decreeNumber: `قرار رقم (${nextNum}) لسنة ١٤٤٧ هـ`,
+                      title: 'تعيين وتكليف في منصب إداري',
+                      appointeeName: '',
+                      selectedMemberId: ''
+                    }));
+                  }}
+                  className="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                >
+                  إلغاء وضع التعديل
+                </button>
+              </div>
+            )}
+
+            {/* Success Message Banner */}
+            {decreeSavedMessage && (
+              <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-900 p-4 rounded-2xl flex items-center gap-3 animate-fadeIn shadow-md">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                <div>
+                  <h4 className="font-bold text-sm">تم قيد وحفظ القرار الرسمي في سجلات الأرشيف بنجاح!</h4>
+                  <p className="text-xs text-emerald-700">يمكنك الآن معاينة القرار، نسخه، ومشاركته أو تحميل صورته الفخمة المنسقة.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Form Top Control Bar */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[#064e3b] text-xs font-black bg-[#fcfbf7] border border-[#d4af37] px-3 py-1 rounded-full flex items-center gap-1.5 shadow-xs">
+                    <ScrollText className="w-3.5 h-3.5 text-[#d4af37]" />
+                    محرر وصائغ القرارات المعتمد
+                  </span>
+                  <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-1 rounded-full">
+                    شعار وخاتم السادة الأشراف
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold font-heritage text-[#064e3b]">
+                  {editingDecreeId ? 'تعديل القرار الرسمي' : 'صياغة وإصدار قرار رسمي جديد'}
+                </h3>
+              </div>
+
+              {/* Mode Toggle: Appointment vs General Administrative */}
+              <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDecreeForm(prev => ({
+                      ...prev,
+                      isAppointment: true,
+                      decreeType: 'appointment'
+                    }));
+                    handleAutoGenerateDecreeText(undefined, undefined, undefined, true);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                    decreeForm.isAppointment
+                      ? 'bg-[#064e3b] text-white shadow'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4 text-[#d4af37]" />
+                  <span>قرار تعيين وتكليف (مع رفع صورة العضو)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDecreeForm(prev => ({
+                      ...prev,
+                      isAppointment: false,
+                      decreeType: 'administrative'
+                    }));
+                    handleAutoGenerateDecreeText(undefined, undefined, undefined, false);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                    !decreeForm.isAppointment
+                      ? 'bg-[#064e3b] text-white shadow'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ScrollText className="w-4 h-4 text-[#d4af37]" />
+                  <span>قرار تنظيمي / تشكيل لجان</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Main Form Elements */}
+            <form onSubmit={handleSaveDecree} className="space-y-6">
+              
+              {/* Row 1: Decree Number & Decree Type & Issue Dates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* Decree Number (Auto-Numbering) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>رقم القرار الرسمي (تلقائي) *</span>
+                    <span className="text-[10px] text-emerald-700 font-mono">تسلسلي</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={decreeForm.decreeNumber}
+                    onChange={(e) => setDecreeForm(prev => ({ ...prev, decreeNumber: e.target.value }))}
+                    placeholder="مثال: قرار رقم (٠٣) لسنة ١٤٤٧ هـ"
+                    className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-bold text-[#064e3b]"
+                  />
+                </div>
+
+                {/* Decree Category */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    نوع وتصنيف القرار *
+                  </label>
+                  <select
+                    value={decreeForm.decreeType}
+                    onChange={(e) => {
+                      const val = e.target.value as OfficialDecree['decreeType'];
+                      const isAppt = val === 'appointment';
+                      setDecreeForm(prev => ({
+                        ...prev,
+                        decreeType: val,
+                        isAppointment: isAppt
+                      }));
+                      handleAutoGenerateDecreeText(undefined, undefined, undefined, isAppt);
+                    }}
+                    className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                  >
+                    <option value="appointment">قرار تعيين وتكليف إداري</option>
+                    <option value="administrative">قرار إداري وتنفيذي</option>
+                    <option value="committee">قرار تشكيل لجنة بحث وتحقيق أنساب</option>
+                    <option value="honorary">قرار تكريم ووسام شرف هاشمي</option>
+                    <option value="general">قرار تنظيمي وتوجيه عام</option>
+                  </select>
+                </div>
+
+                {/* Hijri Date */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    تاريخ الصدور الهجري *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={decreeForm.issueDateHijri}
+                    onChange={(e) => setDecreeForm(prev => ({ ...prev, issueDateHijri: e.target.value }))}
+                    className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-mono"
+                  />
+                </div>
+
+                {/* Gregorian Date */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    تاريخ الصدور الميلادي *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={decreeForm.issueDateGregorian}
+                    onChange={(e) => setDecreeForm(prev => ({ ...prev, issueDateGregorian: e.target.value }))}
+                    className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Decree Title / Subject */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  موضوع وعنوان القرار الرئيسي *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={decreeForm.title}
+                  onChange={(e) => setDecreeForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="مثال: تعيين وتكليف أمين عام التجمع لمحافظات الصعيد والأشراف"
+                  className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-bold text-slate-800"
+                />
+              </div>
+
+              {/* ======================================================== */}
+              {/* APPOINTMENT SPECIFIC SECTION (UPLOAD PHOTO & DETAILS) */}
+              {/* ======================================================== */}
+              {decreeForm.isAppointment && (
+                <div className="bg-gradient-to-br from-[#fcfbf7] to-[#f5f1e4] p-5 sm:p-6 rounded-2xl border-2 border-[#d4af37] space-y-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#064e3b] text-[#d4af37] flex items-center justify-center font-bold">
+                        <UserCheck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-heritage text-base font-bold text-[#064e3b]">
+                          بيانات العضو المعيَّن وصورته الرسمية والتكليف الإداري
+                        </h4>
+                        <p className="text-xs text-slate-600">
+                          يتم وضع صورة العضو المعين داخل إطار مذهب فخم في أعلى القرار وتوليد الديباجة تلقائياً
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Auto Generate Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleAutoGenerateDecreeText()}
+                      className="bg-[#064e3b] hover:bg-[#0b6e54] text-[#d4af37] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>توليد وصياغة الديباجة والمواد تلقائياً</span>
+                    </button>
+                  </div>
+
+                  {/* Pick Existing Member or Custom */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      اختيار سريع من سجل الأعضاء المقيدين (اختياري لملء البيانات والصورة تلقائياً)
+                    </label>
+                    <select
+                      value={decreeForm.selectedMemberId}
+                      onChange={(e) => handleSelectMemberForAppointee(e.target.value)}
+                      className="w-full text-xs sm:text-sm p-3 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                    >
+                      <option value="">-- إدخال يدوي لعضو جديد أو غير مسجل --</option>
+                      {members.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.fullName} ({m.membershipNumber}) - {m.branch} - {m.city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Appointee Details Grid with Photo Upload */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                    
+                    {/* Appointee Photo Box */}
+                    <div className="md:col-span-4 bg-white p-4 rounded-2xl border border-amber-200 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
+                      <div className="relative">
+                        <div className="w-28 h-36 rounded-xl overflow-hidden border-2 border-[#d4af37] shadow-md bg-slate-100 flex items-center justify-center">
+                          {decreeForm.appointeePhotoUrl ? (
+                            <img
+                              src={decreeForm.appointeePhotoUrl}
+                              alt="Appointee"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Users className="w-12 h-12 text-slate-300" />
+                          )}
+                        </div>
+                        <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-[#064e3b] text-[#d4af37] flex items-center justify-center text-xs font-bold shadow border border-[#d4af37]">
+                          ★
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 w-full">
+                        <button
+                          type="button"
+                          onClick={() => setIsDecreePhotoModalOpen(true)}
+                          className="w-full bg-[#064e3b] hover:bg-[#0b6e54] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-all"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>رفع وتعديل صورة المعيَّن</span>
+                        </button>
+                        <p className="text-[10px] text-slate-500">
+                          يمكن قص وتكييف أي صورة لتظهر بدقة عالية
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Appointee Name, Position & Clan Fields */}
+                    <div className="md:col-span-8 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-1">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            اللقب الشرفي *
+                          </label>
+                          <input
+                            type="text"
+                            value={decreeForm.appointeeTitle}
+                            onChange={(e) => setDecreeForm(prev => ({ ...prev, appointeeTitle: e.target.value }))}
+                            placeholder="السيد الشريف / فضيلة الشيخ"
+                            className="w-full text-xs sm:text-sm p-2.5 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            الاسم الكامل للعضو المعيَّن *
+                          </label>
+                          <input
+                            type="text"
+                            required={decreeForm.isAppointment}
+                            value={decreeForm.appointeeName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setDecreeForm(prev => ({ ...prev, appointeeName: val }));
+                            }}
+                            placeholder="مثال: الشريف الشيخ عبد الرحمن بن صالح الجعفري"
+                            className="w-full text-xs sm:text-sm p-2.5 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-bold text-[#064e3b]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Position & Presets */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                          <span>المنصب أو التكليف الصادر به القرار *</span>
+                          <span className="text-[10px] text-amber-700">اضغط على أي منصب للملء السريع</span>
+                        </label>
+                        <input
+                          type="text"
+                          required={decreeForm.isAppointment}
+                          value={decreeForm.appointeePosition}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setDecreeForm(prev => ({ ...prev, appointeePosition: val }));
+                          }}
+                          placeholder="مثال: أمين عام التجمع لمحافظات الصعيد والأشراف"
+                          className="w-full text-xs sm:text-sm p-2.5 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-bold text-slate-800"
+                        />
+
+                        {/* Quick Preset Badges */}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {[
+                            'أمين عام التجمع بمحافظة القاهرة',
+                            'أمين عام التجمع بمحافظة الجيزة',
+                            'أمين عام محافظات الصعيد ومصر العليا',
+                            'أمين عام التجمع بمحافظة الإسكندرية',
+                            'أمين عام التجمع بمحافظة قنا',
+                            'رئيس لجنة تحقيق الأنساب والمشجرات',
+                            'رئيس لجنة التكافل والخدمات الاجتماعية',
+                            'المستشار الإعلامي والمتحدث الرسمي',
+                            'منسق شؤون الشباب والتطوير الرقمي'
+                          ].map((pos, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setDecreeForm(prev => ({ ...prev, appointeePosition: pos }));
+                                handleAutoGenerateDecreeText(decreeForm.appointeeName, pos, decreeForm.appointeeBranch, true);
+                              }}
+                              className="text-[11px] bg-white hover:bg-emerald-50 text-[#064e3b] border border-amber-300/80 px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium"
+                            >
+                              + {pos}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Branch & City */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            البيت أو الفرع الهاشمي
+                          </label>
+                          <select
+                            value={decreeForm.appointeeBranch}
+                            onChange={(e) => setDecreeForm(prev => ({ ...prev, appointeeBranch: e.target.value }))}
+                            className="w-full text-xs sm:text-sm p-2.5 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                          >
+                            {branches.map(b => (
+                              <option key={b.id} value={b.name}>{b.name}</option>
+                            ))}
+                            <option value="الدوحة النبوية الشريفة">الدوحة النبوية الشريفة (عام)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            المحافظة أو النطاق الجغرافي
+                          </label>
+                          <input
+                            type="text"
+                            value={decreeForm.appointeeCity}
+                            onChange={(e) => setDecreeForm(prev => ({ ...prev, appointeeCity: e.target.value }))}
+                            placeholder="القاهرة / قنا / الجيزة / أسوان..."
+                            className="w-full text-xs sm:text-sm p-2.5 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                          />
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================================== */}
+              {/* PREAMBLE (الديباجة الرسمية) */}
+              {/* ======================================================== */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    ديباجة وسند القرار (بناءً على الصلاحيات واللوائح...) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleAutoGenerateDecreeText()}
+                    className="text-xs text-emerald-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-[#d4af37]" />
+                    إعادة توليد الصياغة الهاشمية
+                  </button>
+                </div>
+                <textarea
+                  rows={3}
+                  required
+                  value={decreeForm.preamble}
+                  onChange={(e) => setDecreeForm(prev => ({ ...prev, preamble: e.target.value }))}
+                  placeholder="بناءً على النظام الأساسي واللائحة التنظيمية لتجمع السادة الأشراف بني هاشم بمصر..."
+                  className="w-full text-xs sm:text-sm p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none leading-relaxed"
+                />
+              </div>
+
+              {/* ======================================================== */}
+              {/* ARTICLES (المواد التنفيذية للقرار) */}
+              {/* ======================================================== */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div>
+                    <h4 className="font-bold text-xs sm:text-sm text-[#064e3b]">
+                      بنود ومواد القرار التنفيذية (مادة ١، مادة ٢، مادة ٣...)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      يمكنك إضافة أي عدد من المواد أو تعديل نصوصها بكل حرية
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDecreeForm(prev => ({ ...prev, articles: [...prev.articles, ''] }))}
+                    className="bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة مادة جديدة</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {decreeForm.articles.map((art, idx) => (
+                    <div key={idx} className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <span className="bg-[#064e3b] text-[#d4af37] text-xs font-bold px-2.5 py-1.5 rounded-lg shrink-0">
+                        مادة ({idx + 1})
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={art}
+                        onChange={(e) => {
+                          const updated = [...decreeForm.articles];
+                          updated[idx] = e.target.value;
+                          setDecreeForm(prev => ({ ...prev, articles: updated }));
+                        }}
+                        placeholder={`نص المادة رقم (${idx + 1})...`}
+                        className="w-full text-xs sm:text-sm p-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#064e3b] outline-none resize-none"
+                      />
+                      {decreeForm.articles.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = decreeForm.articles.filter((_, i) => i !== idx);
+                            setDecreeForm(prev => ({ ...prev, articles: updated }));
+                          }}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer transition-all"
+                          title="حذف هذه المادة"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Signatory Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    صفة ومسمى الموقِّع على القرار *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={decreeForm.signatoryTitle}
+                    onChange={(e) => setDecreeForm(prev => ({ ...prev, signatoryTitle: e.target.value }))}
+                    className="w-full text-xs sm:text-sm p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    اسم الموقِّع الشريف *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={decreeForm.signatoryName}
+                    onChange={(e) => setDecreeForm(prev => ({ ...prev, signatoryName: e.target.value }))}
+                    className="w-full text-xs sm:text-sm p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none font-bold text-[#064e3b]"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextNum = (decreesList.length + 1).toString().padStart(2, '0');
+                      setEditingDecreeId(null);
+                      setDecreeForm({
+                        isAppointment: true,
+                        decreeType: 'appointment',
+                        decreeNumber: `قرار رقم (${nextNum}) لسنة ١٤٤٧ هـ`,
+                        title: 'تعيين وتكليف في منصب إداري',
+                        selectedMemberId: '',
+                        appointeeName: '',
+                        appointeeTitle: 'السيد الشريف',
+                        appointeePosition: 'أمين عام التجمع بمحافظة الجيزة',
+                        appointeeBranch: 'الأشراف الجعافرة (أشراف الصعيد)',
+                        appointeeCity: 'الجيزة / القاهرة',
+                        appointeePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+                        preamble: 'بناءً على النظام الأساسي واللائحة التنظيمية لتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية، وحرصاً على تفعيل دور الكفاءات وتطوير العمل الميداني والتواصلي بين أبناء العمومة، وبناءً على ما عرضه مكتب الأمانة العامة، ولما تقتضيه المصلحة العامة، قررنا ما هو آت:',
+                        articles: [
+                          'تعيين السيد الشريف / [الاسم] في منصب [المنصب] بتجمع السادة الأشراف بني هاشم بجمهورية مصر العربية.',
+                          'يُكلف المذكور بمباشرة مهام المنصب والتنسيق مع الأمانة العامة بالقاهرة وتمثيل التجمع ومتابعة شؤون أبناء العمومة.',
+                          'يُعمل بهذا القرار من تاريخ صدوره، ويُخطر به أصحاب الشأن واللجان المختصة للعمل بموجبه ونشره باللوحة الرسمية.'
+                        ],
+                        signatoryTitle: 'الأمين العام لتجمع السادة الأشراف بني هاشم بمصر',
+                        signatoryName: 'الشريف / د. أحمد بن منصور الهاشمي',
+                        issueDateHijri: '1447/08/29 هـ',
+                        issueDateGregorian: '2026/08/29 م',
+                        notes: 'صادر من الأمانة العامة'
+                      });
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs sm:text-sm cursor-pointer"
+                  >
+                    تفريغ الحقول / قرار جديد
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Preview High Quality Modal Button */}
+                  <button
+                    type="button"
+                    onClick={handlePreviewDecree}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-[#064e3b] font-black px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Eye className="w-4 h-4 text-[#064e3b]" />
+                    <span>معاينة وتصدير الصورة الفخمة</span>
+                  </button>
+
+                  {/* Save to Archive */}
+                  <button
+                    type="submit"
+                    className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Check className="w-4 h-4 text-[#d4af37]" />
+                    <span>{editingDecreeId ? 'حفظ التعديلات على القرار' : 'حفظ وقيد القرار في الأرشيف'}</span>
+                  </button>
+                </div>
+              </div>
+
+            </form>
+          </div>
+
+          {/* ======================================================== */}
+          {/* DECREES ARCHIVE & SEARCH GRID */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold font-heritage text-[#064e3b]">
+                  سجل وأرشيف القرارات الرسمية الصادرة
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  جميع القرارات والتعيينات المحفوظة مع إمكانية التعديل، والتحميل كصورة، والمشاركة الفورية
+                </p>
+              </div>
+
+              {/* Filters and Search */}
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={decreeSearch}
+                    onChange={(e) => setDecreeSearch(e.target.value)}
+                    placeholder="بحث برقم القرار أو الاسم أو الموضوع..."
+                    className="w-full text-xs pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#064e3b] outline-none"
+                  />
+                </div>
+
+                <select
+                  value={decreeFilter}
+                  onChange={(e) => setDecreeFilter(e.target.value as any)}
+                  className="text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
+                >
+                  <option value="all">كل القرارات ({decreesList.length})</option>
+                  <option value="appointment">قرارات التعيين والتكليف</option>
+                  <option value="committee">قرارات اللجان</option>
+                  <option value="administrative">قرارات إدارية عامة</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Decrees Grid */}
+            {decreesList.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                <ScrollText className="w-12 h-12 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-sm text-slate-700">لا توجد قرارات مسجلة بالأرشيف حالياً</h4>
+                <p className="text-xs text-slate-500">استخدم النموذج أعلاه لإصدار أول قرار رسمي أو تعيين إداري</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                {decreesList
+                  .filter(d => {
+                    const matchesFilter = 
+                      decreeFilter === 'all' || 
+                      (decreeFilter === 'appointment' && d.isAppointment) ||
+                      (decreeFilter === 'committee' && d.decreeType === 'committee') ||
+                      (decreeFilter === 'administrative' && !d.isAppointment && d.decreeType !== 'committee');
+                    
+                    const matchesSearch = 
+                      d.decreeNumber.toLowerCase().includes(decreeSearch.toLowerCase()) ||
+                      d.title.toLowerCase().includes(decreeSearch.toLowerCase()) ||
+                      (d.appointeeName && d.appointeeName.toLowerCase().includes(decreeSearch.toLowerCase())) ||
+                      (d.appointeePosition && d.appointeePosition.toLowerCase().includes(decreeSearch.toLowerCase()));
+
+                    return matchesFilter && matchesSearch;
+                  })
+                  .map(dec => (
+                    <div
+                      key={dec.id}
+                      className="bg-[#fcfbf7] border-2 border-[#d4af37]/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+                          <span className="bg-[#064e3b] text-[#d4af37] text-xs font-black px-2.5 py-1 rounded-lg font-mono">
+                            {dec.decreeNumber}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            dec.isAppointment 
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                              : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          }`}>
+                            {dec.isAppointment ? 'قرار تعيين وتكليف' : 'قرار تنظيمي وإداري'}
+                          </span>
+                        </div>
+
+                        {/* Title & Appointee Info */}
+                        <div className="space-y-1.5">
+                          <h4 className="font-heritage text-base font-bold text-[#064e3b] line-clamp-1">
+                            {dec.title}
+                          </h4>
+
+                          {dec.isAppointment && dec.appointeeName && (
+                            <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-amber-200/80">
+                              <img
+                                src={dec.appointeePhotoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80'}
+                                alt={dec.appointeeName}
+                                className="w-11 h-14 object-cover rounded-lg border border-[#d4af37] shrink-0"
+                              />
+                              <div className="space-y-0.5 overflow-hidden">
+                                <div className="text-xs font-bold text-[#064e3b] truncate">
+                                  {dec.appointeeName}
+                                </div>
+                                <div className="text-[11px] text-amber-800 font-bold truncate">
+                                  {dec.appointeePosition}
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate">
+                                  {dec.appointeeBranch} {dec.appointeeCity ? `• ${dec.appointeeCity}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed pt-1">
+                            {dec.preamble}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card Footer with Details & Actions */}
+                      <div className="border-t border-amber-200/60 pt-3 space-y-3">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                          <span>{dec.issueDateHijri}</span>
+                          <span className="font-bold text-[#064e3b]">{dec.signatoryTitle}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDecreeForModal(dec);
+                              setIsDecreeModalOpen(true);
+                            }}
+                            className="flex-1 bg-[#064e3b] hover:bg-[#0b6e54] text-[#d4af37] hover:text-white py-2 px-3 rounded-xl text-xs font-black shadow flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>عرض وتصدير الصورة</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleEditDecreeInForm(dec)}
+                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 p-2 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                            title="تعديل هذا القرار"
+                          >
+                            <Edit3 className="w-4 h-4 text-amber-600" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDecree(dec.id)}
+                            className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 p-2 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                            title="حذف هذا القرار من الأرشيف"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
@@ -2257,6 +3424,34 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           avatarUrl: d.avatarUrl || '',
           notes: d.notes || ''
         })}
+      />
+
+      {/* Official Decree High Quality Image & Printable Modal */}
+      {selectedDecreeForModal && (
+        <OfficialDecreeModal
+          isOpen={isDecreeModalOpen}
+          onClose={() => {
+            setIsDecreeModalOpen(false);
+            setSelectedDecreeForModal(null);
+          }}
+          decree={selectedDecreeForModal}
+          onSaveAndRefresh={handleUpdateDecreeFromModal}
+        />
+      )}
+
+      {/* Photo Upload & Crop Modal for Decree Appointee */}
+      <PhotoUploadModal
+        isOpen={isDecreePhotoModalOpen}
+        onClose={() => setIsDecreePhotoModalOpen(false)}
+        onPhotoSelected={(photoUrl) => {
+          setDecreeForm(prev => ({
+            ...prev,
+            appointeePhotoUrl: photoUrl
+          }));
+          setIsDecreePhotoModalOpen(false);
+        }}
+        currentPhotoUrl={decreeForm.appointeePhotoUrl}
+        title="رفع وتعديل صورة العضو المعيَّن بالقرار"
       />
 
     </div>
