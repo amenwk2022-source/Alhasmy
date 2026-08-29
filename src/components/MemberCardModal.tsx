@@ -112,8 +112,8 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
       // Native Web Share with image
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `كارنيه عضوية الشريف ${memberName}`,
-          text: `الهوية الرقمية الرسمية للسادة الأشراف بني هاشم بمصر - الشريف ${memberName} (${membershipNo})`,
+          title: `كارنيه انضمام وانتساب الشريف ${memberName}`,
+          text: `انضمام وانتساب لتجمع السادة الأشراف بني هاشم - الشريف ${memberName} (${membershipNo})`,
           files: [file]
         });
         setShareSuccessMsg('تمت مشاركة صورة الكارنيه بنجاح!');
@@ -135,7 +135,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
           const dataUrl = await generateCardImage();
           if (dataUrl) {
             const link = document.createElement('a');
-            link.download = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
+            link.download = `كارنيه-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
             link.href = dataUrl;
             link.click();
             setShareSuccessMsg('تم تحميل صورة الكارنيه بجهازك');
@@ -158,7 +158,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
       if (dataUrl) {
         const sideText = isFlipped ? 'الخلفي' : 'الأمامي';
         const link = document.createElement('a');
-        link.download = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
+        link.download = `كارنيه-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
         link.href = dataUrl;
         link.click();
         setShareSuccessMsg(`تم تحميل صورة الكارنيه (${sideText}) بجودة عالية`);
@@ -204,7 +204,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
 
   const handleWhatsAppShare = () => {
     const text = encodeURIComponent(
-      `*كارنيه عضوية السادة الأشراف بني هاشم في مصر*\n` +
+      `*كارنيه انضمام وانتساب لتجمع السادة الأشراف بني هاشم*\n` +
       `👤 الاسم: الشريف ${memberName}\n` +
       `📜 الفرع: ${branchName} (${subClan})\n` +
       `🔢 كود القيد: ${membershipNo}\n` +
@@ -218,7 +218,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
     if (!cardRef.current) return;
     setIsExportingImage(true);
     const sideText = isFlipped ? 'الخلفي' : 'الأمامي';
-    const fileName = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
+    const fileName = `كارنيه-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
 
     try {
       const blob = await toBlob(cardRef.current, {
@@ -232,13 +232,13 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
       if (!blob) throw new Error('Failed to generate card image blob');
 
       const file = new File([blob], fileName, { type: 'image/png' });
-      const quote = `كارنيه عضوية السادة الأشراف بني هاشم بمصر - الشريف ${memberName} (${membershipNo})`;
+      const quote = `كارنيه انضمام وانتساب لتجمع السادة الأشراف بني هاشم - الشريف ${memberName} (${membershipNo})`;
 
       // If browser supports sharing image files directly to Facebook / apps
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `كارنيه عضوية السادة الأشراف - ${memberName}`,
+          title: `كارنيه انضمام وانتساب - ${memberName}`,
           text: quote
         });
         setShareSuccessMsg('تم فتح نافذة مشاركة صورة الكارنيه بنجاح');
@@ -286,14 +286,14 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold bg-[#fcfbf7] text-[#d4af37] border border-[#d4af37]/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Award className="w-3 h-3 text-[#d4af37]" />
-                الهوية الرقمية الرسمية الذكية (كارنيه العضوية)
+                الهوية الرقمية الرسمية الذكية
               </span>
               <span className="text-[10px] text-slate-500 font-mono font-bold">
                 {membershipNo}
               </span>
             </div>
             <h3 className="text-xl font-bold font-heritage text-[#064e3b] mt-1">
-              كارنيه عضوية السادة الأشراف بني هاشم في مصر
+              انضمام وانتساب لتجمع السادة الأشراف بني هاشم
             </h3>
           </div>
 
@@ -400,7 +400,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
                     جمهورية مصر العربية
                   </span>
                   <span className="text-xs sm:text-sm font-heritage font-bold text-[#d4af37] block">
-                    السادة الأشراف بني هاشم
+                    لتجمع السادة الأشراف بني هاشم
                   </span>
                 </div>
 
@@ -411,10 +411,10 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
                 </div>
 
                 <div className="text-left space-y-0.5">
-                  <span className={`text-[9px] sm:text-[10px] block ${
-                    cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-slate-300'
+                  <span className={`text-[9px] sm:text-[10px] block font-bold ${
+                    cardTheme === 'diplomatic' ? 'text-[#064e3b]' : 'text-[#d4af37]'
                   }`}>
-                    بطاقة إثبات نسب وعضوية
+                    انضمام وانتساب
                   </span>
                   <span className="text-xs font-mono font-bold text-[#d4af37] block">
                     {membershipNo}
@@ -466,7 +466,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
 
               {/* Middle Bar: Golden Lineage Ribbon */}
               <div className="bg-[#d4af37]/20 border-y border-[#d4af37]/40 py-1 px-3 text-[10px] font-heritage font-bold text-center text-[#d4af37] relative z-10 truncate">
-                • السادة الأشراف بني هاشم بمصر • نقابة الأشراف • أمانة الأنساب • توثيق السجلات الشرعية •
+                • انضمام وانتساب • لتجمع السادة الأشراف بني هاشم بمصر • أمانة الأنساب والتوثيق •
               </div>
 
               {/* Card Bottom: Official Status & QR */}
@@ -550,8 +550,12 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               </div>
 
               {/* Security Legal Notice */}
-              <div className="text-[9px] text-slate-400 leading-tight pt-1">
-                * هذه البطاقة وثيقة نسب رسمية صادرة بموجب المشجرات وسجلات الأنساب المحفوظة، وتستخدم لإثبات الانتساب والتواصل بين أبناء العمومة.
+              <div className={`text-[9.5px] sm:text-[10px] font-heritage leading-relaxed p-2 rounded-xl border ${
+                cardTheme === 'diplomatic'
+                  ? 'bg-amber-50/80 text-[#064e3b] border-amber-200 font-bold'
+                  : 'bg-black/40 text-amber-200/90 border-white/10'
+              }`}>
+                * وقد سجلت هذه العضوية رسميًا في السجل العام للسادة الأشراف بني هاشم في جمهورية مصر العربية، إقرارًا بصلة الرحم والتكافل والتعاون على البر والتقوى.
               </div>
 
             </div>

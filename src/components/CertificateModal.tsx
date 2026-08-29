@@ -107,13 +107,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       const blob = await generateCertificateBlob();
       if (!blob) throw new Error('Failed to create image blob');
 
-      const fileName = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+      const fileName = `شهادة-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `شهادة انتساب الشريف ${memberName}`,
-          text: `شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر - الشريف ${memberName} (كود القيد: ${membershipNo})`,
+          title: `شهادة انضمام وانتساب الشريف ${memberName}`,
+          text: `شهادة انضمام وانتساب لتجمع السادة الأشراف بني هاشم - الشريف ${memberName} (كود القيد: ${membershipNo})`,
           files: [file]
         });
         setShareSuccessMsg('تمت مشاركة صورة الشهادة بنجاح!');
@@ -132,7 +132,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         const dataUrl = await generateCertificateImage();
         if (dataUrl) {
           const link = document.createElement('a');
-          link.download = `شهادة-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
+          link.download = `شهادة-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
           link.href = dataUrl;
           link.click();
           setShareSuccessMsg('تم حفظ الشهادة كصورة PNG بجهازك');
@@ -151,10 +151,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       const dataUrl = await generateCertificateImage();
       if (dataUrl) {
         const link = document.createElement('a');
-        link.download = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+        link.download = `شهادة-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
         link.href = dataUrl;
         link.click();
-        setShareSuccessMsg('تم تحميل شهادة الانتساب كصورة عالية الدقة');
+        setShareSuccessMsg('تم تحميل شهادة الانضمام والانتساب كصورة عالية الدقة');
       }
     } catch (e) {
       console.error(e);
@@ -189,7 +189,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
   const handleWhatsAppShare = () => {
     const text = encodeURIComponent(
-      `*شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر*\n` +
+      `*شهادة انضمام وانتساب لتجمع السادة الأشراف بني هاشم*\n` +
       `👤 الاسم: الشريف ${memberName}\n` +
       `📜 الفرع: ${branchName}\n` +
       `🔢 كود القيد: ${membershipNo}\n` +
@@ -202,19 +202,19 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const handleFacebookShare = async () => {
     if (!certRef.current) return;
     setIsExportingImage(true);
-    const fileName = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+    const fileName = `شهادة-انضمام-وانتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
 
     try {
       const blob = await generateCertificateBlob();
       if (!blob) throw new Error('Failed to generate image blob');
 
       const file = new File([blob], fileName, { type: 'image/png' });
-      const quote = `شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر - الشريف ${memberName} (كود القيد: ${membershipNo})`;
+      const quote = `شهادة انضمام وانتساب لتجمع السادة الأشراف بني هاشم - الشريف ${memberName} (كود القيد: ${membershipNo})`;
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `شهادة انتساب السادة الأشراف - ${memberName}`,
+          title: `شهادة انضمام وانتساب - ${memberName}`,
           text: quote
         });
         setShareSuccessMsg('تم فتح نافذة مشاركة صورة الشهادة بنجاح');
@@ -273,7 +273,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               </span>
             </div>
             <h3 className="text-base sm:text-xl font-bold font-heritage text-[#064e3b] mt-0.5">
-              شهادة انضمام وانتساب السادة الأشراف بني هاشم
+              انضمام وانتساب لتجمع السادة الأشراف بني هاشم
             </h3>
           </div>
 
@@ -425,16 +425,16 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               {/* Certificate Title */}
               <div className="pt-0.5">
                 <h1 className="cert-header-title text-xl sm:text-3xl font-bold font-heritage text-[#064e3b] tracking-wide leading-tight inline-block px-4">
-                  شـهـادة انـضـمـام وانـتـسـاب
+                  انـضـمـام وانـتـسـاب
                 </h1>
-                <p className="cert-sub-title text-[10px] sm:text-xs font-heritage text-[#d4af37] font-bold">
-                  سجل السادة الأشراف بني هاشم في جمهورية مصر العربية
+                <p className="cert-sub-title text-[11px] sm:text-sm font-heritage text-[#d4af37] font-bold">
+                  لتجمع السادة الأشراف بني هاشم
                 </p>
               </div>
             </div>
 
             {/* 2. Body Text, Name & Photo Banner, and Lineage */}
-            <div className="space-y-1.5 sm:space-y-2.5 text-center relative z-10 py-1 flex-1 flex flex-col justify-center">
+            <div className="space-y-1.5 sm:space-y-2 text-center relative z-10 py-1 flex-1 flex flex-col justify-center">
               
               <p className="cert-intro text-xs sm:text-sm text-slate-700 font-heritage font-medium leading-tight">
                 تـشـهـد الأمانـة العـامـة ولجـنـة تحـقـيـق الأنـسـاب بـأن السـيـد الشـريـف /
@@ -469,9 +469,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   قـد ثـبـت صـحـة انـتـسـابـه وانـضـمـامـه الشـريـف إلـى بـيـوت السـادة الأشـراف بـنـي هـاشـم:
                 </p>
 
-                <div className="cert-lineage-box bg-white/95 p-2 sm:p-3 rounded-xl border border-[#d4af37] text-[11px] sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs text-center">
+                <div className="cert-lineage-box bg-white/95 p-2 sm:p-2.5 rounded-xl border border-[#d4af37] text-[11px] sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs text-center">
                   « {lineageChain} »
                 </div>
+
+                <p className="cert-registration-statement text-[10px] sm:text-xs text-[#064e3b] font-heritage font-bold bg-[#fcfbf7] p-1.5 sm:p-2 rounded-xl border border-[#d4af37]/50 leading-relaxed max-w-3xl mx-auto shadow-xs">
+                  وقد سجلت هذه العضوية رسميًا في السجل العام للسادة الأشراف بني هاشم في جمهورية مصر العربية، إقرارًا بصلة الرحم والتكافل والتعاون على البر والتقوى.
+                </p>
               </div>
 
               {customDedication && (
