@@ -45,8 +45,10 @@ import {
   CreditCard,
   UserPlus,
   Trash2,
-  Share2
+  Share2,
+  Edit3
 } from 'lucide-react';
+import { EditIssuedDocModal } from './EditIssuedDocModal';
 
 interface AdminDashboardViewProps {
   members: RegisteredMember[];
@@ -193,6 +195,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   });
 
   const [docSavedMessage, setDocSavedMessage] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<IssuedDocument | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editingDocBannerName, setEditingDocBannerName] = useState<string>('');
 
   // Calculate Statistics
   const totalMembers = members.length;
@@ -331,10 +337,113 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     onViewCertificate(tempMember);
   };
 
+  const handleOpenEditModal = (doc: IssuedDocument) => {
+    setEditingDoc(doc);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateIssuedDoc = (updatedDoc: IssuedDocument) => {
+    const updated = issuedDocsList.map(d => d.id === updatedDoc.id ? updatedDoc : d);
+    setIssuedDocsList(updated);
+    localStorage.setItem('bh_issued_docs', JSON.stringify(updated));
+    setDocSavedMessage(true);
+    setTimeout(() => setDocSavedMessage(false), 3500);
+  };
+
+  const handleLoadDocIntoMainForm = (doc: IssuedDocument) => {
+    setEditingDocId(doc.id);
+    setEditingDocBannerName(`${doc.recipientName} (${doc.documentNumber})`);
+    setDocForm({
+      isNonMember: !doc.isMember,
+      selectedMemberId: '',
+      recipientName: doc.recipientName,
+      title: doc.recipientTitle || 'الشريف المكرم',
+      branch: doc.branch,
+      subClan: doc.subClan || '',
+      city: doc.city,
+      country: doc.country || 'جمهورية مصر العربية',
+      documentNumber: doc.documentNumber,
+      documentType: doc.documentType,
+      issueDateHijri: doc.issueDateHijri,
+      issueDateGregorian: doc.issueDateGregorian,
+      lineageChainSummary: doc.lineageChainSummary || '',
+      nationalId: doc.nationalId || '28904121402391',
+      phone: doc.phone || '',
+      avatarUrl: doc.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+      notes: doc.notes || ''
+    });
+
+    // Scroll to issuance section smoothly
+    const element = document.getElementById('issuance-form-anchor');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEditMode = () => {
+    setEditingDocId(null);
+    setEditingDocBannerName('');
+    setDocForm({
+      isNonMember: true,
+      selectedMemberId: '',
+      recipientName: '',
+      title: 'الشريف المكرم',
+      branch: 'الأشراف الأدارسة الفاسيين',
+      subClan: 'البيت الإدريسي',
+      city: 'القاهرة',
+      country: 'جمهورية مصر العربية',
+      documentNumber: `BH-VIP-1447-0${Math.floor(100 + Math.random() * 900)}`,
+      documentType: 'both',
+      issueDateHijri: '1447/08/29 هـ',
+      issueDateGregorian: '2026/08/29 م',
+      lineageChainSummary: 'سلسلة نسب شريفة متصلة ومحققة إلى الدوحة النبوية المباركة وسيد شباب أهل الجنة وصولاً إلى الجد الجامع هاشم بن عبد مناف.',
+      nationalId: '28904121402391',
+      phone: '+20 10 1234 5678',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+      notes: 'إصدار معتمد مصدق من الأمانة العامة'
+    });
+  };
+
   const handleSaveIssuedDoc = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!docForm.recipientName.trim()) {
       alert('يرجى كتابة الاسم الكامل للمستفيد');
+      return;
+    }
+
+    if (editingDocId) {
+      // Update existing document
+      const updated = issuedDocsList.map(d => {
+        if (d.id === editingDocId) {
+          return {
+            ...d,
+            recipientName: docForm.recipientName,
+            recipientTitle: docForm.title,
+            documentType: docForm.documentType,
+            documentNumber: docForm.documentNumber,
+            branch: docForm.branch,
+            subClan: docForm.subClan,
+            city: docForm.city,
+            country: docForm.country,
+            issueDateHijri: docForm.issueDateHijri,
+            issueDateGregorian: docForm.issueDateGregorian,
+            lineageChainSummary: docForm.lineageChainSummary,
+            phone: docForm.phone,
+            nationalId: docForm.nationalId,
+            avatarUrl: docForm.avatarUrl,
+            isMember: !docForm.isNonMember,
+            notes: docForm.notes
+          };
+        }
+        return d;
+      });
+
+      setIssuedDocsList(updated);
+      localStorage.setItem('bh_issued_docs', JSON.stringify(updated));
+      setEditingDocId(null);
+      setEditingDocBannerName('');
+      setDocSavedMessage(true);
+      setTimeout(() => setDocSavedMessage(false), 3500);
       return;
     }
 
@@ -838,7 +947,33 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <div className="space-y-8 animate-fadeIn">
           
           {/* Issuance Form Container */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#d4af37] shadow-xl space-y-6">
+          <div id="issuance-form-anchor" className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#d4af37] shadow-xl space-y-6">
+            
+            {/* Active Edit Mode Notification Banner */}
+            {editingDocId && (
+              <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm">
+                    ✏️
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-amber-950">
+                      أنت الآن في وضع تعديل بيانات وثيقة صادرة: <span className="underline">{editingDocBannerName}</span>
+                    </h4>
+                    <p className="text-[11px] text-amber-800">
+                      قم بتعديل أي حقل تريده، ثم اضغط على زر "حفظ وتحديث بيانات الوثيقة" أو عاين الشهادة والكارنيه
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelEditMode}
+                  className="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer transition-all shadow-xs"
+                >
+                  إلغاء وضع التعديل
+                </button>
+              </div>
+            )}
             
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
@@ -1159,12 +1294,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {editingDocId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditMode}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm cursor-pointer transition-all"
+                    >
+                      إلغاء التعديل
+                    </button>
+                  )}
                   <button
                     type="submit"
                     className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow flex items-center gap-2 cursor-pointer transition-all"
                   >
                     <Check className="w-4 h-4 text-emerald-200" />
-                    <span>حفظ وقيد في سجل الوثائق الصادرة</span>
+                    <span>{editingDocId ? 'حفظ وتحديث بيانات الوثيقة والشهادة' : 'حفظ وقيد في سجل الوثائق الصادرة'}</span>
                   </button>
                 </div>
 
@@ -1271,8 +1415,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     </div>
 
                     {/* Card & Certificate Action Buttons */}
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        {/* Edit Button (Modal) */}
+                        <button
+                          onClick={() => handleOpenEditModal(doc)}
+                          className="bg-amber-50 hover:bg-amber-100 text-[#854d0e] border border-amber-300 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-xs"
+                          title="تعديل بيانات هذه الوثيقة والشهادة مباشرة"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>تعديل البيانات</span>
+                        </button>
+
                         <button
                           onClick={() => handlePreviewDocCard({
                             isNonMember: !doc.isMember,
@@ -1293,10 +1447,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                             avatarUrl: doc.avatarUrl || '',
                             notes: doc.notes || ''
                           })}
-                          className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                          className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
                         >
                           <CreditCard className="w-3.5 h-3.5 text-[#d4af37]" />
-                          <span>عرض الكارنيه</span>
+                          <span>الكارنيه</span>
                         </button>
 
                         <button
@@ -1319,20 +1473,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                             avatarUrl: doc.avatarUrl || '',
                             notes: doc.notes || ''
                           })}
-                          className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                          className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
                         >
                           <Award className="w-3.5 h-3.5" />
-                          <span>عرض الشهادة</span>
+                          <span>الشهادة</span>
                         </button>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteIssuedDoc(doc.id)}
-                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-lg transition-all cursor-pointer"
-                        title="حذف من الأرشيف"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleLoadDocIntoMainForm(doc)}
+                          className="text-slate-500 hover:text-[#064e3b] hover:bg-slate-100 px-2 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-all"
+                          title="تحميل البيانات في نموذج الإصدار بالأعلى"
+                        >
+                          تحميل بالنموذج
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteIssuedDoc(doc.id)}
+                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-lg transition-all cursor-pointer"
+                          title="حذف من الأرشيف"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                   </div>
@@ -2041,6 +2205,59 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* EDIT ISSUED DOCUMENT MODAL */}
+      <EditIssuedDocModal
+        isOpen={isEditModalOpen}
+        doc={editingDoc}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingDoc(null);
+        }}
+        onSave={(updatedDoc) => {
+          handleUpdateIssuedDoc(updatedDoc);
+          setIsEditModalOpen(false);
+          setEditingDoc(null);
+        }}
+        onPreviewCard={(d) => handlePreviewDocCard({
+          isNonMember: !d.isMember,
+          selectedMemberId: '',
+          recipientName: d.recipientName,
+          title: d.recipientTitle || 'الشريف المكرم',
+          branch: d.branch,
+          subClan: d.subClan || 'البيت الهاشمي',
+          city: d.city,
+          country: d.country,
+          documentNumber: d.documentNumber,
+          documentType: 'card',
+          issueDateHijri: d.issueDateHijri,
+          issueDateGregorian: d.issueDateGregorian,
+          lineageChainSummary: d.lineageChainSummary || '',
+          nationalId: d.nationalId || '28904121402391',
+          phone: d.phone || '+20 10 1234 5678',
+          avatarUrl: d.avatarUrl || '',
+          notes: d.notes || ''
+        })}
+        onPreviewCert={(d) => handlePreviewDocCert({
+          isNonMember: !d.isMember,
+          selectedMemberId: '',
+          recipientName: d.recipientName,
+          title: d.recipientTitle || 'الشريف المكرم',
+          branch: d.branch,
+          subClan: d.subClan || 'البيت الهاشمي',
+          city: d.city,
+          country: d.country,
+          documentNumber: d.documentNumber,
+          documentType: 'certificate',
+          issueDateHijri: d.issueDateHijri,
+          issueDateGregorian: d.issueDateGregorian,
+          lineageChainSummary: d.lineageChainSummary || '',
+          nationalId: d.nationalId || '28904121402391',
+          phone: d.phone || '+20 10 1234 5678',
+          avatarUrl: d.avatarUrl || '',
+          notes: d.notes || ''
+        })}
+      />
 
     </div>
   );

@@ -14,7 +14,10 @@ import {
   MessageCircle,
   Loader2,
   Camera,
-  Facebook
+  Facebook,
+  Edit3,
+  Save,
+  FileText
 } from 'lucide-react';
 import { toPng, toBlob } from 'html-to-image';
 import { PhotoUploadModal } from './PhotoUploadModal';
@@ -24,21 +27,44 @@ interface CertificateModalProps {
   member: UserProfile | RegisteredMember | null;
   onClose: () => void;
   onUpdateMemberPhoto?: (photoUrl: string) => void;
+  onUpdateMemberData?: (updatedData: {
+    fullName?: string;
+    branch?: string;
+    membershipNumber?: string;
+    lineageChainSummary?: string;
+    joinDate?: string;
+  }) => void;
 }
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({ 
   member, 
   onClose,
-  onUpdateMemberPhoto
+  onUpdateMemberPhoto,
+  onUpdateMemberData
 }) => {
   const [downloaded, setDownloaded] = useState(false);
   const [theme, setTheme] = useState<'emerald' | 'parchment' | 'royal'>('emerald');
   const [showPhoto, setShowPhoto] = useState(true);
   const [customDedication, setCustomDedication] = useState('');
   const [isCustomizing, setIsCustomizing] = useState(false);
+  const [isEditingData, setIsEditingData] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
+  const initialMemberName = member ? ('fullName' in member ? member.fullName : ((member as any).name || (member as any).recipientName || 'الشريف المكرم')) : 'الشريف المكرم';
+  const initialMembershipNo = member ? (member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786') : 'BH-EG-1447-0786';
+  const initialBranchName = member ? (member.branch || 'الأشراف الجعافرة (أشراف الصعيد)') : 'الأشراف الجعافرة (أشراف الصعيد)';
+  const initialJoinDate = member ? ('joinDateHijri' in member ? member.joinDateHijri : ((member as any).joinDate || (member as any).issueDateHijri || '1447/08/29 هـ')) : '1447/08/29 هـ';
+  const initialLineageChain = member ? (('lineageChainSummary' in member && member.lineageChainSummary)
+    ? member.lineageChainSummary 
+    : ((member as any).lineageChainText || 'سلسلة شريفة متصلة إلى الدوحة النبوية المباركة وسيد شباب أهل الجنة والجد الجامع هاشم بن عبد مناف، مصدقة ومقيدة بسجلات أمانة الأنساب بجمهورية مصر العربية.')) : '';
+
+  const [memberName, setMemberName] = useState(initialMemberName);
+  const [membershipNo, setMembershipNo] = useState(initialMembershipNo);
+  const [branchName, setBranchName] = useState(initialBranchName);
+  const [joinDate, setJoinDate] = useState(initialJoinDate);
+  const [lineageChain, setLineageChain] = useState(initialLineageChain);
 
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>(() => {
     if (!member) return '';
@@ -49,13 +75,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
   if (!member) return null;
 
-  const memberName = 'fullName' in member ? member.fullName : ((member as any).name || (member as any).recipientName || 'الشريف المكرم');
-  const membershipNo = member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786';
-  const branchName = member.branch || 'الأشراف الجعافرة (أشراف الصعيد)';
-  const joinDate = 'joinDateHijri' in member ? member.joinDateHijri : ((member as any).joinDate || (member as any).issueDateHijri || '1447/08/29 هـ');
-  const lineageChain = ('lineageChainSummary' in member && member.lineageChainSummary)
-    ? member.lineageChainSummary 
-    : ((member as any).lineageChainText || 'سلسلة شريفة متصلة إلى الدوحة النبوية المباركة وسيد شباب أهل الجنة والجد الجامع هاشم بن عبد مناف، مصدقة ومقيدة بسجلات أمانة الأنساب بجمهورية مصر العربية.');
+  const handleSaveDataChanges = () => {
+    if (onUpdateMemberData) {
+      onUpdateMemberData({
+        fullName: memberName,
+        branch: branchName,
+        membershipNumber: membershipNo,
+        lineageChainSummary: lineageChain,
+        joinDate: joinDate
+      });
+    }
+    setShareSuccessMsg('تم حفظ وتحديث بيانات الشهادة بنجاح');
+    setIsEditingData(false);
+    setTimeout(() => setShareSuccessMsg(null), 3000);
+  };
 
   const handlePrint = () => {
     window.print();
@@ -279,6 +312,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                setIsEditingData(!isEditingData);
+                if (isCustomizing) setIsCustomizing(false);
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                isEditingData ? 'bg-[#064e3b] text-white shadow' : 'bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300'
+              }`}
+              title="تعديل بيانات المستفيد وسلسلة النسب"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>تعديل البيانات</span>
+            </button>
+
+            <button
               onClick={() => setIsPhotoModalOpen(true)}
               className="bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
               title="تكييف وضبط صورة الشهادة"
@@ -288,7 +335,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             </button>
 
             <button
-              onClick={() => setIsCustomizing(!isCustomizing)}
+              onClick={() => {
+                setIsCustomizing(!isCustomizing);
+                if (isEditingData) setIsEditingData(false);
+              }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5 text-[#064e3b]" />
@@ -303,6 +353,84 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Certificate Data Live Editor */}
+        {isEditingData && (
+          <div className="bg-[#fcfbf7] p-4 rounded-2xl border-2 border-[#d4af37] text-xs space-y-3 no-print animate-fadeIn shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-2">
+              <span className="font-heritage font-bold text-sm text-[#064e3b] flex items-center gap-1.5">
+                <Edit3 className="w-4 h-4 text-[#d4af37]" />
+                تعديل وتخصيص بيانات الشهادة مباشرة:
+              </span>
+              <span className="text-[10px] text-slate-500">تحديث فوري ينعكس على الشهادة والطباعة</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">الاسم الكامل للشريف *</label>
+                <input
+                  type="text"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">الفرع الهاشمي *</label>
+                <input
+                  type="text"
+                  value={branchName}
+                  onChange={(e) => setBranchName(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">كود القيد / رقم الشهادة</label>
+                <input
+                  type="text"
+                  value={membershipNo}
+                  onChange={(e) => setMembershipNo(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">صيغة سلسلة النسب المكتوبة بالشهادة *</label>
+              <textarea
+                rows={2}
+                value={lineageChain}
+                onChange={(e) => setLineageChain(e.target.value)}
+                className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed font-heritage text-slate-800 focus:ring-1 focus:ring-[#064e3b] outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-slate-400">
+                * يمكنك أيضاً تغيير الصورة الشخصية من زر (الصورة) بالأعلى
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingData(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  إغلاق المحرر
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDataChanges}
+                  className="bg-[#064e3b] hover:bg-[#0b6e54] text-white font-bold px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow cursor-pointer transition-all"
+                >
+                  <Save className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>اعتماد وحفظ التعديلات</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Certificate Customization Toolbar */}
         {isCustomizing && (
