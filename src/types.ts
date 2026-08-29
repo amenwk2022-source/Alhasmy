@@ -279,7 +279,9 @@ export interface IssuedDocument {
   id: string;
   recipientName: string;
   recipientTitle?: string;
-  documentType: 'certificate' | 'card' | 'both';
+  documentType: 'certificate' | 'card' | 'both' | 'thanks';
+  certificateType?: 'affiliation' | 'thanks' | 'honorary';
+  showPhotoInThanks?: boolean;
   documentNumber: string;
   branch: string;
   subClan?: string;
@@ -377,15 +379,17 @@ export interface GenealogyReference {
 export interface OfficialDecree {
   id: string;
   decreeNumber: string; // e.g. "قرار رقم (١٢) لسنة ١٤٤٧ هـ"
-  decreeType: 'appointment' | 'administrative' | 'honorary' | 'general' | 'committee';
+  decreeType: 'appointment' | 'administrative' | 'honorary' | 'thanks' | 'general' | 'committee';
   title: string;
   issueDateHijri: string;
   issueDateGregorian: string;
   signatoryTitle: string;
   signatoryName: string;
   
-  // Appointment specific fields
+  // Appointment & Appreciation / Thanks fields
   isAppointment: boolean;
+  isThanksOrHonorary?: boolean;
+  includePhoto?: boolean; // true = name + photo, false = name only
   appointeeName?: string;
   appointeeTitle?: string;
   appointeePhotoUrl?: string;
@@ -393,6 +397,7 @@ export interface OfficialDecree {
   appointeeBranch?: string;
   appointeeMembershipNo?: string;
   appointeeCity?: string;
+  thanksReason?: string;
 
   preamble: string;
   articles: string[];

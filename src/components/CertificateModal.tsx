@@ -44,8 +44,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 }) => {
   const [downloaded, setDownloaded] = useState(false);
   const [theme, setTheme] = useState<'emerald' | 'parchment' | 'royal'>('emerald');
+  const [certType, setCertType] = useState<'affiliation' | 'thanks' | 'honorary'>('affiliation');
   const [showPhoto, setShowPhoto] = useState(true);
   const [customDedication, setCustomDedication] = useState('');
+  const [thanksAppreciationText, setThanksAppreciationText] = useState('تقديراً وعرفاناً لجهوده المخلصة، وعطائه المتواصل، ومساعيه المباركة في خدمة أبناء العمومة من السادة الأشراف بني هاشم، وترسيخ أواصر المودة وصلة الرحم والتكافل.');
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [isEditingData, setIsEditingData] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
@@ -434,8 +436,40 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
         {/* Certificate Customization Toolbar */}
         {isCustomizing && (
-          <div className="bg-[#fafaf7] p-3 rounded-xl border border-amber-200 text-xs space-y-2 no-print animate-fadeIn">
+          <div className="bg-[#fafaf7] p-3.5 rounded-xl border border-amber-300 text-xs space-y-3 no-print animate-fadeIn">
             <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Type Switch */}
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700">نوع الوثيقة:</span>
+                <div className="flex bg-white p-1 rounded-lg border border-slate-200 gap-1">
+                  <button
+                    onClick={() => setCertType('affiliation')}
+                    className={`px-2.5 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                      certType === 'affiliation' ? 'bg-[#064e3b] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    📜 شهادة انتساب
+                  </button>
+                  <button
+                    onClick={() => setCertType('thanks')}
+                    className={`px-2.5 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                      certType === 'thanks' ? 'bg-[#064e3b] text-[#d4af37] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    ❤️ شكر وتقدير
+                  </button>
+                  <button
+                    onClick={() => setCertType('honorary')}
+                    className={`px-2.5 py-1 rounded-md font-bold text-xs transition-all cursor-pointer ${
+                      certType === 'honorary' ? 'bg-[#064e3b] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🎖️ وسام تكريم
+                  </button>
+                </div>
+              </div>
+
+              {/* Theme Switch */}
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-700">الطراز:</span>
                 <div className="flex gap-1">
@@ -466,26 +500,51 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 </div>
               </div>
 
-              <label className="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showPhoto}
-                  onChange={(e) => setShowPhoto(e.target.checked)}
-                  className="w-3.5 h-3.5 text-[#064e3b] rounded"
-                />
-                <span>إظهار الصورة</span>
-              </label>
+              {/* Photo vs Name Only Toggle */}
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-300">
+                <button
+                  type="button"
+                  onClick={() => setShowPhoto(true)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-all ${
+                    showPhoto ? 'bg-[#064e3b] text-white shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  مع الصورة الشخصية
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPhoto(false)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-all ${
+                    !showPhoto ? 'bg-[#064e3b] text-white shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  الاسم فقط (بدون صورة)
+                </button>
+              </div>
             </div>
 
-            <div>
-              <input
-                type="text"
-                value={customDedication}
-                onChange={(e) => setCustomDedication(e.target.value)}
-                placeholder="إضافة إهداء أو تصدير خاص بالشهادة (اختياري)..."
-                className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#064e3b] outline-none"
-              />
-            </div>
+            {certType === 'thanks' ? (
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">نص وحيثية الشكر والتقدير:</label>
+                <input
+                  type="text"
+                  value={thanksAppreciationText}
+                  onChange={(e) => setThanksAppreciationText(e.target.value)}
+                  placeholder="تقديراً وعرفاناً لجهوده المخلصة في خدمة السادة الأشراف..."
+                  className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="text"
+                  value={customDedication}
+                  onChange={(e) => setCustomDedication(e.target.value)}
+                  placeholder="إضافة إهداء أو تصدير خاص بالشهادة (اختياري)..."
+                  className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#064e3b] outline-none"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -553,25 +612,27 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               {/* Certificate Title */}
               <div className="pt-0.5">
                 <h1 className="cert-header-title text-xl sm:text-3xl font-bold font-heritage text-[#064e3b] tracking-wide leading-tight inline-block px-4">
-                  انـضـمـام وانـتـسـاب
+                  {certType === 'thanks' ? 'شُـكـر وتـقـديـر وعـرفـان' : certType === 'honorary' ? 'وسـام شـرف وتـكـريـم' : 'انـضـمـام وانـتـسـاب'}
                 </h1>
                 <p className="cert-sub-title text-[11px] sm:text-sm font-heritage text-[#d4af37] font-bold">
-                  لتجمع السادة الأشراف بني هاشم
+                  {certType === 'thanks' ? 'وسام الوفاء والعطاء الهاشمي' : 'لتجمع السادة الأشراف بني هاشم'}
                 </p>
               </div>
             </div>
 
-            {/* 2. Body Text, Name & Photo Banner, and Lineage */}
+            {/* 2. Body Text, Name & Photo Banner, and Lineage / Appreciation */}
             <div className="space-y-1.5 sm:space-y-2 text-center relative z-10 py-1 flex-1 flex flex-col justify-center">
               
               <p className="cert-intro text-xs sm:text-sm text-slate-700 font-heritage font-medium leading-tight">
-                تـشـهـد الأمانـة العـامـة ولجـنـة تحـقـيـق الأنـسـاب بـأن السـيـد الشـريـف /
+                {certType === 'thanks' 
+                  ? 'يسر الأمانة العامة والهيئة العليا لتجمع الأشراف أن تتقدم بوافر الشكر والتقدير إلى السيد الشريف /'
+                  : 'تـشـهـد الأمانـة العـامـة ولجـنـة تحـقـيـق الأنـسـاب بـأن السـيـد الشـريـف /'}
               </p>
 
               {/* Compact Name and Photo Banner */}
-              <div className="cert-member-banner flex flex-row items-center justify-center gap-3 sm:gap-6 bg-gradient-to-r from-transparent via-[#f5f3e9] to-transparent py-1.5 sm:py-2.5 px-4 sm:px-8 rounded-xl border-y border-[#d4af37]/60">
+              <div className={`cert-member-banner flex flex-row items-center justify-center gap-3 sm:gap-6 bg-gradient-to-r from-transparent via-[#f5f3e9] to-transparent py-1.5 sm:py-2.5 px-4 sm:px-8 rounded-xl border-y border-[#d4af37]/60 ${!showPhoto ? 'text-center' : ''}`}>
                 {showPhoto && currentAvatarUrl && (
-                  <div className="w-12 h-14 sm:w-16 sm:h-20 rounded-xl border border-[#d4af37] overflow-hidden shadow-sm shrink-0 bg-white">
+                  <div className="w-12 h-14 sm:w-16 sm:h-20 rounded-xl border-2 border-[#d4af37] overflow-hidden shadow-sm shrink-0 bg-white">
                     <img 
                       src={currentAvatarUrl} 
                       alt={memberName} 
@@ -580,31 +641,42 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                     />
                   </div>
                 )}
-                <div className="space-y-0.5 text-right">
+                <div className={`space-y-0.5 ${showPhoto ? 'text-right' : 'text-center'}`}>
                   <h2 className="cert-member-name text-xl sm:text-3xl font-bold font-heritage text-[#064e3b] leading-tight">
                     {memberName}
                   </h2>
-                  <div className="cert-branch-text text-[10px] sm:text-xs text-slate-600 font-bold flex items-center gap-1.5 leading-none">
+                  <div className={`cert-branch-text text-[10px] sm:text-xs text-slate-600 font-bold flex items-center gap-1.5 leading-none ${!showPhoto ? 'justify-center' : ''}`}>
                     <span>المنتمي إلى:</span>
                     <span className="text-[#854d0e] font-heritage font-bold text-xs sm:text-sm">{branchName}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Statement & Lineage Chain */}
-              <div className="w-full max-w-4xl mx-auto space-y-1 sm:space-y-1.5">
-                <p className="cert-proclamation text-[10px] sm:text-xs text-slate-700 font-heritage leading-tight">
-                  قـد ثـبـت صـحـة انـتـسـابـه وانـضـمـامـه الشـريـف إلـى بـيـوت السـادة الأشـراف بـنـي هـاشـم:
-                </p>
-
-                <div className="cert-lineage-box bg-white/95 p-2 sm:p-2.5 rounded-xl border border-[#d4af37] text-[11px] sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs text-center">
-                  « {lineageChain} »
+              {/* Statement & Content (Thanks vs Lineage) */}
+              {certType === 'thanks' ? (
+                <div className="w-full max-w-4xl mx-auto space-y-1 sm:space-y-1.5">
+                  <div className="cert-lineage-box bg-white/95 p-2.5 sm:p-3 rounded-xl border border-[#d4af37] text-xs sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs text-center">
+                    « {thanksAppreciationText} »
+                  </div>
+                  <p className="cert-registration-statement text-[10px] sm:text-xs text-[#064e3b] font-heritage font-bold bg-[#fcfbf7] p-1.5 sm:p-2 rounded-xl border border-[#d4af37]/50 leading-relaxed max-w-3xl mx-auto shadow-xs">
+                    سائلين المولى عز وجل له دوام التوفيق والسداد ورفعة الشأن، في ظل دوحة آل البيت الكرام.
+                  </p>
                 </div>
+              ) : (
+                <div className="w-full max-w-4xl mx-auto space-y-1 sm:space-y-1.5">
+                  <p className="cert-proclamation text-[10px] sm:text-xs text-slate-700 font-heritage leading-tight">
+                    قـد ثـبـت صـحـة انـتـسـابـه وانـضـمـامـه الشـريـف إلـى بـيـوت السـادة الأشـراف بـنـي هـاشـم:
+                  </p>
 
-                <p className="cert-registration-statement text-[10px] sm:text-xs text-[#064e3b] font-heritage font-bold bg-[#fcfbf7] p-1.5 sm:p-2 rounded-xl border border-[#d4af37]/50 leading-relaxed max-w-3xl mx-auto shadow-xs">
-                  وقد سجلت هذه العضوية رسميًا في السجل العام للسادة الأشراف بني هاشم في جمهورية مصر العربية، إقرارًا بصلة الرحم والتكافل والتعاون على البر والتقوى.
-                </p>
-              </div>
+                  <div className="cert-lineage-box bg-white/95 p-2 sm:p-2.5 rounded-xl border border-[#d4af37] text-[11px] sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs text-center">
+                    « {lineageChain} »
+                  </div>
+
+                  <p className="cert-registration-statement text-[10px] sm:text-xs text-[#064e3b] font-heritage font-bold bg-[#fcfbf7] p-1.5 sm:p-2 rounded-xl border border-[#d4af37]/50 leading-relaxed max-w-3xl mx-auto shadow-xs">
+                    وقد سجلت هذه العضوية رسميًا في السجل العام للسادة الأشراف بني هاشم في جمهورية مصر العربية، إقرارًا بصلة الرحم والتكافل والتعاون على البر والتقوى.
+                  </p>
+                </div>
+              )}
 
               {customDedication && (
                 <div className="cert-dedication bg-[#fcfbf7] p-1.5 rounded-lg border border-amber-300 text-[10px] sm:text-xs font-heritage text-slate-800 italic max-w-2xl mx-auto leading-tight">
