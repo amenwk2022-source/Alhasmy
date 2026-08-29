@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch ? window.fetch.bind(window) : undefined;
+          var patchDescriptor = function(target) {
+            try {
+              var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+              if (desc && !desc.set && desc.configurable) {
+                Object.defineProperty(target, 'fetch', {
+                  get: function() { return originalFetch; },
+                  set: function(fn) { originalFetch = typeof fn === 'function' ? fn.bind(window) : fn; },
+                  configurable: true,
+                  enumerable: true
+                });
+              }
+            } catch (e) {}
+          };
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            patchDescriptor(Window.prototype);
+          }
+          if (typeof window !== 'undefined') {
+            patchDescriptor(window);
+          }
+        } catch (err) {}
+      })();
+    </script>
+    <title>تجمع السادة الأشراف بني هاشم في مصر</title>
+    <meta name="description" content="البوابة الإلكترونية الرسمية لتجمع السادة الأشراف بني هاشم في جمهورية مصر العربية لتعزيز صلة الرحم، توثيق الأنساب والتاريخ والتراث، ورعاية الفعاليات والمبادرات التكافلية." />
+    <meta property="og:title" content="تجمع السادة الأشراف بني هاشم في مصر" />
+    <meta property="og:description" content="البوابة الإلكترونية الرسمية لتجمع السادة الأشراف بني هاشم في جمهورية مصر العربية لتعزيز صلة الرحم، توثيق الأنساب والتاريخ والتراث، ورعاية الفعاليات والمبادرات التكافلية." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#fdfcf6] text-[#1a1a1a] antialiased selection:bg-[#d4af37]/30 selection:text-[#064e3b]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
