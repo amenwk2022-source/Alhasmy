@@ -39,3 +39,59 @@
   background: #b59226;
 }
 
+/* A4 Vertical Print Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body {
+    background: transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print,
+  nav,
+  header,
+  footer,
+  aside,
+  button,
+  .fixed:not(#official-certificate-print) {
+    display: none !important;
+  }
+
+  #official-certificate-modal-container {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  #official-certificate-modal-body {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  #official-certificate-print {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    height: 297mm !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 12mm !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+

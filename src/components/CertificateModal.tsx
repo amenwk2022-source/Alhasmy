@@ -15,8 +15,8 @@ import {
   MessageCircle,
   Loader2,
   Camera,
-  Layers,
-  Facebook
+  Facebook,
+  FileCheck2
 } from 'lucide-react';
 import { toPng, toBlob } from 'html-to-image';
 import { PhotoUploadModal } from './PhotoUploadModal';
@@ -41,9 +41,6 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-  
-  // Facebook landscape mode vs Standard Certificate ratio mode
-  const [exportFormat, setExportFormat] = useState<'facebook' | 'standard'>('facebook');
 
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>(() => {
     if (!member) return '';
@@ -76,12 +73,33 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     setTimeout(() => setShareSuccessMsg(null), 3500);
   };
 
-  // Generate Image Blob or Data URL with optimal social media dimensions
+  // Standard A4 Portrait dimensions at 300 DPI (2480 x 3508 pixels)
+  const A4_WIDTH_300DPI = 2480;
+  const A4_HEIGHT_300DPI = 3508;
+
+  // Generate Image Data URL with exact 2480 x 3508 px at 300 DPI
   const generateCertificateImage = async () => {
     if (!certRef.current) return null;
     return await toPng(certRef.current, {
-      quality: 0.98,
-      pixelRatio: 2.2,
+      canvasWidth: A4_WIDTH_300DPI,
+      canvasHeight: A4_HEIGHT_300DPI,
+      pixelRatio: 3,
+      quality: 1,
+      cacheBust: true,
+      skipFonts: true,
+      fontEmbedCSS: '',
+      backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
+    });
+  };
+
+  // Generate Image Blob with exact 2480 x 3508 px at 300 DPI
+  const generateCertificateBlob = async () => {
+    if (!certRef.current) return null;
+    return await toBlob(certRef.current, {
+      canvasWidth: A4_WIDTH_300DPI,
+      canvasHeight: A4_HEIGHT_300DPI,
+      pixelRatio: 3,
+      quality: 1,
       cacheBust: true,
       skipFonts: true,
       fontEmbedCSS: '',
@@ -93,28 +111,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (!certRef.current) return;
     setIsExportingImage(true);
     try {
-      const blob = await toBlob(certRef.current, {
-        quality: 0.98,
-        pixelRatio: 2.2,
-        cacheBust: true,
-        skipFonts: true,
-        fontEmbedCSS: '',
-        backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
-      });
-
+      const blob = await generateCertificateBlob();
       if (!blob) throw new Error('Failed to create image blob');
 
-      const fileName = `شهادة-انتساب-${memberName.replace(/\s+/g, '_')}-فيسبوك.png`;
+      const fileName = `شهادة-انتساب-A4-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
       // Check if native Web Share with files is supported
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `شهادة انتساب الشريف ${memberName}`,
-          text: `شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر - الشريف ${memberName} (كود القيد: ${membershipNo})`,
+          text: `شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر (A4 عمودي - 300 DPI) - الشريف ${memberName} (كود القيد: ${membershipNo})`,
           files: [file]
         });
-        setShareSuccessMsg('تمت مشاركة صورة الشهادة بنجاح!');
+        setShareSuccessMsg('تمت مشاركة صورة الشهادة العمودية A4 بنجاح!');
       } else {
         // Fallback: Download PNG directly
         const dataUrl = await generateCertificateImage();
@@ -124,7 +134,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           link.href = dataUrl;
           link.click();
         }
-        setShareSuccessMsg('تم حفظ شهادة الانتساب كصورة بأبعاد منشورات فيسبوك PNG');
+        setShareSuccessMsg('تم تحميل شهادة الانتساب كصورة A4 عمودية عالية الدقة (2480×3508 - 300 DPI)');
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -133,7 +143,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           const dataUrl = await generateCertificateImage();
           if (dataUrl) {
             const link = document.createElement('a');
-            link.download = `شهادة-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
+            link.download = `شهادة-الشريف-${memberName.replace(/\s+/g, '_')}-A4.png`;
             link.href = dataUrl;
             link.click();
             setShareSuccessMsg('تم حفظ الشهادة كصورة PNG بجهازك');
@@ -155,16 +165,16 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       const dataUrl = await generateCertificateImage();
       if (dataUrl) {
         const link = document.createElement('a');
-        link.download = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+        link.download = `شهادة-انتساب-A4-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
         link.href = dataUrl;
         link.click();
-        setShareSuccessMsg('تم تحميل صورة الشهادة بأبعاد منسقة PNG');
+        setShareSuccessMsg('تم تحميل شهادة الانتساب بمقاس A4 عمودي بدقة فائقة (2480×3508 - 300 DPI) جاهزة للطباعة');
       }
     } catch (e) {
       console.error(e);
     } finally {
       setIsExportingImage(false);
-      setTimeout(() => setShareSuccessMsg(null), 3000);
+      setTimeout(() => setShareSuccessMsg(null), 4000);
     }
   };
 
@@ -172,18 +182,11 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     if (!certRef.current) return;
     setIsExportingImage(true);
     try {
-      const blob = await toBlob(certRef.current, {
-        quality: 0.98,
-        pixelRatio: 2,
-        cacheBust: true,
-        skipFonts: true,
-        fontEmbedCSS: '',
-        backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
-      });
+      const blob = await generateCertificateBlob();
       if (blob) {
         const copied = await copyImageBlobToClipboard(blob);
         if (copied) {
-          setShareSuccessMsg('تم نسخ صورة الشهادة للحافظة (يمكنك لصقها كمنشور على فيسبوك أو واتساب)');
+          setShareSuccessMsg('تم نسخ صورة الشهادة للحافظة بدقة 300 DPI (يمكنك لصقها في أي تطبيق)');
         } else {
           await handleDownloadImageOnly();
           setShareSuccessMsg('تم تحميل صورة الشهادة بجهازك لتعذر النسخ المباشر للحافظة');
@@ -202,7 +205,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
   const handleWhatsAppShare = () => {
     const text = encodeURIComponent(
-      `*شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر*\n` +
+      `*شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر (A4 - 300 DPI)*\n` +
       `👤 الاسم: الشريف ${memberName}\n` +
       `📜 الفرع: ${branchName}\n` +
       `🔢 كود القيد: ${membershipNo}\n` +
@@ -215,18 +218,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const handleFacebookShare = async () => {
     if (!certRef.current) return;
     setIsExportingImage(true);
-    const fileName = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+    const fileName = `شهادة-انتساب-A4-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
 
     try {
-      const blob = await toBlob(certRef.current, {
-        quality: 0.98,
-        pixelRatio: 2.2,
-        cacheBust: true,
-        skipFonts: true,
-        fontEmbedCSS: '',
-        backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
-      });
-
+      const blob = await generateCertificateBlob();
       if (!blob) throw new Error('Failed to generate image blob');
 
       const file = new File([blob], fileName, { type: 'image/png' });
@@ -239,9 +234,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           title: `شهادة انتساب السادة الأشراف - ${memberName}`,
           text: quote
         });
-        setShareSuccessMsg('تم فتح نافذة مشاركة صورة الشهادة بنجاح');
+        setShareSuccessMsg('تم فتح نافذة مشاركة صورة الشهادة A4 بنجاح');
       } else {
-        // Fallback for desktop browsers: Download the image file + copy image/quote + open Facebook post creator
+        // Fallback for desktop browsers: Download the image file + copy image + open Facebook post creator
         const dataUrl = await generateCertificateImage();
         if (dataUrl) {
           const link = document.createElement('a');
@@ -250,7 +245,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           link.click();
         }
         await copyImageBlobToClipboard(blob);
-        setShareSuccessMsg('تم تحميل صورة الشهادة بنجاح 📸 وجاري فتح فيسبوك لإرفاق الصورة في المنشور');
+        setShareSuccessMsg('تم تحميل صورة الشهادة العمودية A4 بدقة 300 DPI 📸 وجاري فتح فيسبوك لإرفاق الصورة في المنشور');
         
         setTimeout(() => {
           window.open('https://www.facebook.com/', '_blank');
@@ -275,8 +270,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-5xl w-full p-4 sm:p-8 space-y-5 shadow-2xl border-2 border-[#d4af37] max-h-[96vh] overflow-y-auto">
+    <div 
+      id="official-certificate-modal-container"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn"
+    >
+      <div 
+        id="official-certificate-modal-body"
+        className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-7 space-y-5 shadow-2xl border-2 border-[#d4af37] max-h-[96vh] overflow-y-auto"
+      >
         
         {/* Modal Top Control Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 no-print">
@@ -284,7 +285,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold bg-[#fcfbf7] text-[#d4af37] border border-[#d4af37]/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Award className="w-3 h-3 text-[#d4af37]" />
-                الوثيقة الرسمية المعتمدة (شهادة الانتساب الشريف)
+                وثيقة رسمية معتمدة (A4 عمودي - 300 DPI)
               </span>
               <span className="text-[10px] text-slate-500 font-mono font-bold">
                 كود القيد: {membershipNo}
@@ -323,12 +324,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           </div>
         </div>
 
-        {/* Certificate Customization Toolbar (Optional) */}
+        {/* Certificate Customization Toolbar */}
         {isCustomizing && (
           <div className="bg-[#fafaf7] p-4 rounded-2xl border border-amber-200 text-xs space-y-3 no-print animate-fadeIn">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-700">طراز الشهادة:</span>
+                <span className="font-bold text-slate-700">طراز الشهادة الملكية:</span>
                 <div className="flex gap-1.5">
                   <button
                     onClick={() => setTheme('emerald')}
@@ -353,34 +354,6 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                     }`}
                   >
                     الكحلي الإمبراطوري
-                  </button>
-                </div>
-              </div>
-
-              {/* Dimensions Selector */}
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-700">أبعاد المشاركة:</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setExportFormat('facebook')}
-                    className={`px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                      exportFormat === 'facebook' 
-                        ? 'bg-blue-700 text-white border-blue-800 shadow-xs' 
-                        : 'bg-white text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    <Facebook className="w-3 h-3 text-[#d4af37]" />
-                    <span>أبعاد فيسبوك (1.91:1)</span>
-                  </button>
-                  <button
-                    onClick={() => setExportFormat('standard')}
-                    className={`px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer ${
-                      exportFormat === 'standard' 
-                        ? 'bg-[#064e3b] text-[#d4af37] border-[#064e3b] shadow-xs' 
-                        : 'bg-white text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    وثيقة قياسية A4
                   </button>
                 </div>
               </div>
@@ -429,32 +402,28 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           </div>
         )}
 
-        {/* Facebook Aspect Ratio Notice / Indicator */}
-        <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 px-4 py-2 rounded-2xl text-xs text-blue-900 no-print">
+        {/* A4 Format & High Resolution Info Badge */}
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#fcfbf7] border border-[#d4af37]/50 px-4 py-2.5 rounded-2xl text-xs text-[#064e3b] no-print">
           <div className="flex items-center gap-2">
-            <Facebook className="w-4 h-4 text-blue-600 shrink-0" />
-            <span className="font-medium">
-              الشهادة مصممة بأبعاد متوازنة ومضبوطة لمنشورات <strong>فيسبوك وواتساب</strong> حتى لا تظهر طويلة أو مشوهة في الخلاصة.
+            <FileCheck2 className="w-4 h-4 text-[#d4af37] shrink-0" />
+            <span className="font-semibold">
+              مقاس الوثيقة: <strong>A4 عمودي أصيل (2480 × 3508 بكسل)</strong> بدقة طباعة <strong>300 DPI</strong> ومطابقة للمواصفات الرسمية.
             </span>
           </div>
           <button
             onClick={() => setIsPhotoModalOpen(true)}
-            className="text-blue-800 hover:text-blue-950 font-bold underline cursor-pointer shrink-0 text-[11px]"
+            className="text-[#064e3b] hover:text-[#d4af37] font-bold underline cursor-pointer shrink-0 text-xs flex items-center gap-1"
           >
-            تغيير وتكييف الصورة الشخصية
+            <Camera className="w-3.5 h-3.5" />
+            <span>تكييف الصورة الشخصية</span>
           </button>
         </div>
 
-        {/* PRINTABLE OFFICIAL CERTIFICATE DOCUMENT CONTAINER */}
-        {/* Enforce aspect ratio and max width for Facebook and standard view */}
+        {/* PRINTABLE OFFICIAL A4 VERTICAL CERTIFICATE DOCUMENT CONTAINER */}
         <div 
           ref={certRef}
           id="official-certificate-print" 
-          className={`relative rounded-3xl transition-all border-6 sm:border-8 shadow-2xl print:border-4 print:shadow-none print:m-0 print:p-8 mx-auto ${
-            exportFormat === 'facebook' 
-              ? 'p-5 sm:p-8 max-w-4xl' 
-              : 'p-6 sm:p-12 max-w-4xl'
-          } ${
+          className={`relative rounded-3xl transition-all border-6 sm:border-8 shadow-2xl mx-auto w-full max-w-[720px] aspect-[1/1.414] min-h-[960px] flex flex-col justify-between p-6 sm:p-9 ${
             theme === 'emerald'
               ? 'bg-[#fdfcf7] border-[#064e3b]'
               : theme === 'parchment'
@@ -463,63 +432,67 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           }`}
         >
           {/* Inner Golden Ornate Border Frame */}
-          <div className="border-3 sm:border-4 border-[#d4af37] border-double rounded-2xl p-4 sm:p-7 space-y-4 sm:space-y-5 relative overflow-hidden">
+          <div className="border-3 sm:border-4 border-[#d4af37] border-double rounded-2xl p-5 sm:p-8 flex flex-col justify-between h-full relative overflow-hidden space-y-4 sm:space-y-6">
             
             {/* Background Islamic Arabesque Seal & Watermark */}
             <div className="absolute inset-0 opacity-5 flex items-center justify-center pointer-events-none">
-              <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full border-8 border-[#064e3b] flex items-center justify-center">
-                <span className="font-heritage text-7xl sm:text-9xl font-bold text-[#064e3b]">هاشم</span>
+              <div className="w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full border-8 border-[#064e3b] flex items-center justify-center">
+                <span className="font-heritage text-8xl sm:text-[140px] font-bold text-[#064e3b]">هاشم</span>
               </div>
             </div>
 
-            {/* Certificate Top Header */}
-            <div className="text-center space-y-2 relative z-10">
+            {/* Certificate Top Header: State, Secretariat, Basmala & Ayah */}
+            <div className="text-center space-y-3 relative z-10">
               
-              {/* Basmala & Ayah */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-b border-[#d4af37]/40 pb-2">
-                <div className="text-right space-y-0.5 hidden sm:block">
-                  <span className="text-[10px] text-slate-500 font-bold block">جمهورية مصر العربية</span>
-                  <span className="text-xs font-heritage font-bold text-[#064e3b] block">أمانة الأنساب والتوثيق</span>
+              {/* Header Details */}
+              <div className="flex items-center justify-between border-b-2 border-[#d4af37]/40 pb-3">
+                <div className="text-right space-y-0.5">
+                  <span className="text-[10px] sm:text-xs text-slate-500 font-bold block">جمهورية مصر العربية</span>
+                  <span className="text-xs sm:text-sm font-heritage font-bold text-[#064e3b] block">أمانة الأنساب والتوثيق</span>
                 </div>
 
-                <div className="text-center">
-                  <div className="font-heritage text-base sm:text-xl font-bold text-[#d4af37] tracking-widest">
+                <div className="text-center px-2">
+                  <div className="font-heritage text-lg sm:text-2xl font-bold text-[#d4af37] tracking-widest">
                     بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ
                   </div>
-                  <div className="text-[11px] sm:text-xs font-heritage text-[#064e3b] font-bold italic bg-[#fcfbf7] inline-block px-3 py-0.5 rounded-full border border-[#d4af37]/40 mt-1">
+                  <div className="text-xs sm:text-sm font-heritage text-[#064e3b] font-bold italic bg-[#fcfbf7] inline-block px-3 sm:px-4 py-0.5 rounded-full border border-[#d4af37]/40 mt-1 shadow-xs">
                     ﴿ قُل لَّا أَسْأَلُكُمْ عَلَيْهِ أَجْرًا إِلَّا الْمَوَدَّةَ فِي الْقُرْبَىٰ ﴾
                   </div>
                 </div>
 
-                <div className="text-left space-y-0.5 hidden sm:block">
-                  <span className="text-[10px] text-slate-500 font-bold block">رقم القيد والتسجيل</span>
-                  <span className="text-xs font-mono font-bold text-[#064e3b] block">{membershipNo}</span>
+                <div className="text-left space-y-0.5">
+                  <span className="text-[10px] sm:text-xs text-slate-500 font-bold block">رقم القيد والتسجيل</span>
+                  <span className="text-xs sm:text-sm font-mono font-bold text-[#064e3b] block">{membershipNo}</span>
                 </div>
               </div>
 
-              {/* Certificate Title */}
-              <div className="pt-1 space-y-0.5">
-                <h1 className="text-xl sm:text-3xl font-bold font-heritage text-[#064e3b] tracking-wide">
-                  شـهـادة انـضـمـام وانـتـسـاب
-                </h1>
-                <p className="text-[11px] sm:text-xs font-heritage text-[#d4af37] font-bold tracking-wider">
+              {/* Certificate Title Banner */}
+              <div className="pt-2 space-y-1">
+                <div className="inline-flex items-center gap-2">
+                  <div className="w-6 sm:w-12 h-0.5 bg-gradient-to-l from-[#d4af37] to-transparent"></div>
+                  <h1 className="text-2xl sm:text-4xl font-bold font-heritage text-[#064e3b] tracking-wide">
+                    شـهـادة انـضـمـام وانـتـسـاب
+                  </h1>
+                  <div className="w-6 sm:w-12 h-0.5 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
+                </div>
+                <p className="text-xs sm:text-sm font-heritage text-[#d4af37] font-bold tracking-wider">
                   سجل السادة الأشراف بني هاشم في جمهورية مصر العربية
                 </p>
               </div>
 
             </div>
 
-            {/* Certificate Body Text - Compact and Elegant for Facebook display */}
-            <div className="space-y-3 sm:space-y-4 text-center relative z-10 py-1">
+            {/* Certificate Body Text - Vertical Rhythm */}
+            <div className="space-y-4 sm:space-y-5 text-center relative z-10 py-1 flex-1 flex flex-col justify-center">
               
-              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-heritage">
+              <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-heritage font-medium">
                 تـشـهـد الأمانـة العـامـة ولجـنـة تحـقـيـق الأنـسـاب بـأن السـيـد الشـريـف /
               </p>
 
-              {/* Member Full Name and Photo in Center Frame */}
-              <div className="flex flex-row items-center justify-center gap-4 bg-gradient-to-r from-transparent via-[#f5f3e9] to-transparent py-2.5 px-4 sm:px-6 rounded-2xl border-y border-[#d4af37]/50">
+              {/* Member Full Name and Photo Centerpiece */}
+              <div className="flex flex-row items-center justify-center gap-4 sm:gap-6 bg-gradient-to-r from-transparent via-[#f5f3e9] to-transparent py-3 sm:py-4 px-4 sm:px-8 rounded-2xl border-y-2 border-[#d4af37]/60 shadow-xs">
                 {showPhoto && currentAvatarUrl && (
-                  <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl border-2 border-[#d4af37] overflow-hidden shadow-md shrink-0 bg-white">
+                  <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-xl border-2 border-[#d4af37] overflow-hidden shadow-md shrink-0 bg-white">
                     <img 
                       src={currentAvatarUrl} 
                       alt={memberName} 
@@ -528,74 +501,82 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                     />
                   </div>
                 )}
-                <div className="space-y-0.5 text-right">
-                  <h2 className="text-lg sm:text-2xl font-bold font-heritage text-[#064e3b]">
+                <div className="space-y-1 text-right">
+                  <h2 className="text-xl sm:text-3xl font-bold font-heritage text-[#064e3b]">
                     {memberName}
                   </h2>
-                  <div className="text-xs text-slate-600 font-bold">
-                    المنتمي إلى: <span className="text-[#854d0e]">{branchName}</span>
+                  <div className="text-xs sm:text-sm text-slate-600 font-bold flex items-center gap-1.5">
+                    <span>المنتمي إلى:</span>
+                    <span className="text-[#854d0e] font-heritage font-bold text-sm sm:text-base">{branchName}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Proclamation text */}
-              <div className="max-w-2xl mx-auto space-y-2">
-                <p className="text-xs text-slate-700 leading-relaxed font-heritage">
+              {/* Proclamation Statement */}
+              <div className="max-w-2xl mx-auto space-y-3">
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-heritage">
                   قـد ثـبـت صـحـة انـتـسـابـه وانـضـمـامـه الشـريـف إلـى بـيـوت السـادة الأشـراف بـنـي هـاشـم، 
                   بـمـوجـب سـجـلات الأنـسـاب والوثـائـق الشـرعـيـة المـودعـة لـدى الأمـانـة:
                 </p>
 
                 {/* Lineage Box */}
-                <div className="bg-white/95 p-3 rounded-xl border border-[#d4af37] text-xs sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-xs line-clamp-3 sm:line-clamp-none">
+                <div className="bg-white/95 p-3.5 sm:p-4 rounded-xl border-2 border-[#d4af37] text-xs sm:text-sm font-heritage font-bold text-[#064e3b] leading-relaxed shadow-sm">
                   « {lineageChain} »
                 </div>
               </div>
 
               {customDedication && (
-                <div className="bg-[#fcfbf7] p-2.5 rounded-xl border border-amber-300 text-xs font-heritage text-slate-800 italic max-w-xl mx-auto">
+                <div className="bg-[#fcfbf7] p-3 rounded-xl border border-amber-300 text-xs sm:text-sm font-heritage text-slate-800 italic max-w-xl mx-auto shadow-xs">
                   "{customDedication}"
                 </div>
               )}
 
             </div>
 
-            {/* Certificate Footer: Date, Seals, and Signatures */}
-            <div className="pt-3 border-t-2 border-[#d4af37]/60 grid grid-cols-3 gap-2 sm:gap-6 items-center text-center text-xs relative z-10">
+            {/* Certificate Footer: Date, Seals, Signatures, and Official Accreditation */}
+            <div className="pt-4 border-t-2 border-[#d4af37]/60 relative z-10 space-y-3">
               
-              {/* Right Signature: Head of Genealogy */}
-              <div className="space-y-1">
-                <span className="text-[9px] sm:text-[11px] text-slate-500 font-bold block">رئيس لجنة الأنساب بمصر</span>
-                <div className="font-heritage text-xs sm:text-sm font-bold text-[#064e3b]">
-                  الشريف د. إبراهيم بن محمد الجعفري
+              <div className="grid grid-cols-3 gap-2 sm:gap-6 items-center text-center text-xs">
+                {/* Right Signature: Head of Genealogy */}
+                <div className="space-y-1">
+                  <span className="text-[10px] sm:text-xs text-slate-500 font-bold block">رئيس لجنة الأنساب بمصر</span>
+                  <div className="font-heritage text-xs sm:text-base font-bold text-[#064e3b]">
+                    الشريف د. إبراهيم بن محمد الجعفري
+                  </div>
+                  <div className="w-20 sm:w-28 h-0.5 bg-[#d4af37] mx-auto opacity-60"></div>
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 block font-mono">توقيع معتمد</span>
                 </div>
-                <div className="w-16 sm:w-24 h-0.5 bg-[#d4af37] mx-auto opacity-50"></div>
-                <span className="text-[9px] text-slate-400 block font-mono">توقيع معتمد</span>
+
+                {/* Center Stamp: Golden Embossed Seal & QR Code */}
+                <div className="flex flex-col items-center justify-center space-y-1.5">
+                  <div className="relative">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-3 border-[#d4af37] bg-[#fcfbf7] flex flex-col items-center justify-center text-[#064e3b] font-bold shadow-lg">
+                      <ShieldCheck className="w-7 h-7 sm:w-9 sm:h-9 text-[#d4af37]" />
+                      <span className="text-[8px] sm:text-[9px] font-heritage font-bold mt-0.5">خاتم الأمانة</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-lg p-1 border border-[#d4af37] shadow-sm">
+                      <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-[#064e3b]" />
+                    </div>
+                  </div>
+                  <span className="text-[10px] sm:text-xs text-slate-600 font-mono font-bold">
+                    {joinDate}
+                  </span>
+                </div>
+
+                {/* Left Signature: Grand Syndicate / Secretary General */}
+                <div className="space-y-1">
+                  <span className="text-[10px] sm:text-xs text-slate-500 font-bold block">الأمين العام للسادة الأشراف</span>
+                  <div className="font-heritage text-xs sm:text-base font-bold text-[#064e3b]">
+                    الشريف المستشار يحيى الهاشمي
+                  </div>
+                  <div className="w-20 sm:w-28 h-0.5 bg-[#d4af37] mx-auto opacity-60"></div>
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 block font-mono">اعتماد رسمي</span>
+                </div>
               </div>
 
-              {/* Center Stamp: Golden Embossed Seal & QR Code */}
-              <div className="flex flex-col items-center justify-center space-y-1">
-                <div className="relative">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-3 border-[#d4af37] bg-[#fcfbf7] flex flex-col items-center justify-center text-[#064e3b] font-bold shadow-md">
-                    <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-[#d4af37]" />
-                    <span className="text-[7px] sm:text-[8px] font-heritage font-bold">خاتم الأمانة</span>
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-lg p-0.5 border border-[#d4af37] shadow-xs">
-                    <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-[#064e3b]" />
-                  </div>
-                </div>
-                <span className="text-[9px] sm:text-[10px] text-slate-500 font-mono font-bold">
-                  {joinDate}
-                </span>
-              </div>
-
-              {/* Left Signature: Grand Syndicate / Secretary General */}
-              <div className="space-y-1">
-                <span className="text-[9px] sm:text-[11px] text-slate-500 font-bold block">الأمين العام للسادة الأشراف</span>
-                <div className="font-heritage text-xs sm:text-sm font-bold text-[#064e3b]">
-                  الشريف المستشار يحيى الهاشمي
-                </div>
-                <div className="w-16 sm:w-24 h-0.5 bg-[#d4af37] mx-auto opacity-50"></div>
-                <span className="text-[9px] text-slate-400 block font-mono">اعتماد رسمي</span>
+              {/* Bottom Micro Security Seal */}
+              <div className="text-center pt-2 border-t border-[#d4af37]/30 text-[9px] sm:text-[10px] text-slate-500 font-medium">
+                وثيقة نسب رسمية صادرة ومصدقة وفق السجلات العامة لأنساب السادة الأشراف بني هاشم بجمهورية مصر العربية
               </div>
 
             </div>
@@ -607,17 +588,17 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2 no-print">
           <div className="text-slate-500 text-xs flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>يمكنك مشاركة الشهادة مباشرة على فيسبوك أو واتساب بأبعاد مثالية</span>
+            <span>الشهادة بدقة 300 DPI ومقاس A4 عمودي متناسق</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {/* Facebook Share Button */}
+            {/* Facebook Share Button (shares full vertical A4 image) */}
             <button
               id="share-facebook-btn"
               onClick={handleFacebookShare}
               disabled={isExportingImage}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] disabled:opacity-50"
-              title="مشاركة وتصدير صورة الشهادة مباشرة إلى منشور فيسبوك"
+              title="مشاركة وتصدير صورة الشهادة العمودية مباشرة إلى منشور فيسبوك"
             >
               {isExportingImage ? (
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -633,14 +614,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               onClick={handleShareAsImage}
               disabled={isExportingImage}
               className="bg-gradient-to-r from-[#064e3b] to-emerald-700 hover:from-emerald-800 hover:to-[#064e3b] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] border border-[#d4af37]/50 disabled:opacity-50"
-              title="مشاركة صورة الشهادة مباشرة عبر الواتساب أو التطبيقات"
+              title="مشاركة صورة الشهادة A4 مباشرة عبر الواتساب أو التطبيقات"
             >
               {isExportingImage ? (
                 <Loader2 className="w-4 h-4 text-[#d4af37] animate-spin" />
               ) : (
                 <Share2 className="w-4 h-4 text-[#d4af37]" />
               )}
-              <span>{isExportingImage ? 'جاري تجهيز الصورة...' : 'مشاركة كصورة'}</span>
+              <span>{isExportingImage ? 'جاري تصدير A4...' : 'مشاركة كصورة (A4)'}</span>
             </button>
 
             {/* Copy Image Button */}
@@ -663,21 +644,25 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               <span className="hidden sm:inline">واتساب</span>
             </button>
 
+            {/* High Resolution A4 Download */}
             <button
               onClick={handleDownload}
               disabled={isExportingImage}
               className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+              title="تحميل شهادة الانتساب بمقاس A4 عمودي بدقة 300 DPI"
             >
               {downloaded ? <Check className="w-4 h-4 text-[#d4af37]" /> : <Download className="w-4 h-4" />}
-              <span>{downloaded ? 'تم الحفظ' : 'تحميل PNG'}</span>
+              <span>{downloaded ? 'تم الحفظ' : 'تحميل A4 (300 DPI)'}</span>
             </button>
 
+            {/* Instant Print A4 Button */}
             <button
               onClick={handlePrint}
               className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-4 sm:px-5 py-2.5 rounded-xl font-black transition-all shadow flex items-center gap-1.5 cursor-pointer"
+              title="طباعة الوثيقة على ورق A4 عمودي"
             >
               <Printer className="w-4 h-4" />
-              <span>طباعة (A4)</span>
+              <span>طباعة (A4 عمودي)</span>
             </button>
           </div>
         </div>
@@ -691,7 +676,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         currentPhotoUrl={currentAvatarUrl}
         onSavePhoto={handlePhotoUpdated}
         title="تكييف وضبط صورة شهادة الانتساب"
-        subtitle="يقوم النظام بقص وتكييف الصورة لتظهر متناسقة تماماً في الشهادة والكارنيه وبأبعاد منشورات السوشيال ميديا"
+        subtitle="يقوم النظام بقص وتكييف الصورة لتظهر متناسقة تماماً في الشهادة والكارنيه"
       />
     </div>
   );
