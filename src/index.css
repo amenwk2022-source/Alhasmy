@@ -39,17 +39,26 @@
   background: #b59226;
 }
 
-/* A4 Vertical Print Styles */
+/* Certificate Print Styles (Supports both Landscape and Portrait) */
 @media print {
   @page {
-    size: A4 portrait;
+    size: A4 landscape;
     margin: 0;
   }
 
-  body {
-    background: transparent !important;
+  *, *::before, *::after {
+    box-sizing: border-box !important;
+  }
+
+  html, body {
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    font-size: 11pt !important;
   }
 
   .no-print,
@@ -58,7 +67,7 @@
   footer,
   aside,
   button,
-  .fixed:not(#official-certificate-print) {
+  .fixed:not(#official-certificate-modal-container) {
     display: none !important;
   }
 
@@ -67,31 +76,129 @@
     background: transparent !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 297mm !important;
+    height: 210mm !important;
     display: block !important;
+    overflow: hidden !important;
   }
 
   #official-certificate-modal-body {
-    max-width: 100% !important;
+    max-width: 297mm !important;
+    width: 297mm !important;
+    height: 210mm !important;
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
     border: none !important;
+    border-radius: 0 !important;
   }
 
   #official-certificate-print {
-    width: 210mm !important;
-    min-height: 297mm !important;
-    height: 297mm !important;
-    max-width: 210mm !important;
-    margin: 0 auto !important;
-    padding: 12mm !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: 297mm !important;
+    max-height: 210mm !important;
+    margin: 0 !important;
+    padding: 7mm !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  #official-certificate-print .cert-inner-frame {
+    height: 100% !important;
+    padding: 5mm 8mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+  }
+
+  /* Specific typography rules in print to prevent any overlapping */
+  #official-certificate-print .cert-header-title {
+    font-size: 22pt !important;
+    line-height: 1.2 !important;
+    margin-top: 1mm !important;
+    margin-bottom: 1mm !important;
+  }
+
+  #official-certificate-print .cert-sub-title {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+  }
+
+  #official-certificate-print .cert-basmala {
+    font-size: 15pt !important;
+    line-height: 1.2 !important;
+  }
+
+  #official-certificate-print .cert-ayah {
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
+  }
+
+  #official-certificate-print .cert-intro {
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin-bottom: 1.5mm !important;
+  }
+
+  #official-certificate-print .cert-member-banner {
+    padding: 2.5mm 6mm !important;
+    margin: 1.5mm 0 !important;
+  }
+
+  #official-certificate-print .cert-member-name {
+    font-size: 18pt !important;
+    line-height: 1.2 !important;
+  }
+
+  #official-certificate-print .cert-branch-text {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+  }
+
+  #official-certificate-print .cert-proclamation {
+    font-size: 10.5pt !important;
+    line-height: 1.4 !important;
+    margin: 1.5mm 0 !important;
+  }
+
+  #official-certificate-print .cert-lineage-box {
+    font-size: 10pt !important;
+    line-height: 1.6 !important;
+    padding: 2.5mm 5mm !important;
+    margin: 1.5mm 0 !important;
+  }
+
+  #official-certificate-print .cert-dedication {
+    font-size: 9.5pt !important;
+    line-height: 1.4 !important;
+    padding: 1.5mm 4mm !important;
+    margin: 1mm 0 !important;
+  }
+
+  #official-certificate-print .cert-footer-section {
+    padding-top: 2mm !important;
+    margin-top: 1.5mm !important;
+  }
+
+  #official-certificate-print .cert-sig-title {
+    font-size: 9pt !important;
+    line-height: 1.2 !important;
+  }
+
+  #official-certificate-print .cert-sig-name {
+    font-size: 11pt !important;
+    line-height: 1.2 !important;
   }
 }
 
