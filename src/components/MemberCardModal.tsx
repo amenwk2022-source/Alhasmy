@@ -7,24 +7,20 @@ import {
   Printer, 
   Check, 
   Sparkles, 
-  Upload, 
   Camera, 
   RotateCw, 
-  Award,
-  Phone,
-  MapPin,
+  Award, 
   FileCheck,
   CheckCircle2,
-  Lock,
-  Layers,
-  Fingerprint,
   Share2,
   Copy,
   MessageCircle,
   Loader2,
-  Image as ImageIcon
+  Facebook
 } from 'lucide-react';
 import { toPng, toBlob } from 'html-to-image';
+import { PhotoUploadModal } from './PhotoUploadModal';
+import { copyImageBlobToClipboard } from '../utils/clipboard';
 
 interface MemberCardModalProps {
   member: RegisteredMember | UserProfile | null;
@@ -51,12 +47,11 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
     if (!member) return '';
     return 'avatarUrl' in member && member.avatarUrl ? member.avatarUrl : PRESET_AVATARS[0];
   });
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [cardTheme, setCardTheme] = useState<'emerald' | 'gold' | 'black' | 'diplomatic'>('emerald');
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   if (!member) return null;
@@ -65,17 +60,23 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
   const membershipNo = member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786';
   const branchName = member.branch || 'الأشراف الجعافرة (أشراف الصعيد)';
   const subClan = 'subClan' in member && member.subClan ? member.subClan : 'الفرع المعتمد';
-  const city = member.city || 'جمهورية مصر العربية';
-  const country = member.country || 'جمهورية مصر العربية';
   const joinDate = 'joinDateHijri' in member ? member.joinDateHijri : ((member as any).joinDate || (member as any).issueDateHijri || '1447/08/29 هـ');
   const lineageChain = ('lineageChainSummary' in member && member.lineageChainSummary)
     ? member.lineageChainSummary 
     : ((member as any).lineageChainText || 'سلسلة نسب شريفة متصلة إلى الدوحة الهاشمية المباركة وسيد شباب أهل الجنة والجد الجامع هاشم بن عبد مناف.');
-  const phone = 'phone' in member && member.phone ? member.phone : '+20 10 1234 5678';
   const nationalId = 'nationalId' in member && member.nationalId ? member.nationalId : '28904121402391';
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handlePhotoUpdated = (newPhotoUrl: string) => {
+    setPhotoUrl(newPhotoUrl);
+    if (onUpdateMemberPhoto) {
+      onUpdateMemberPhoto(newPhotoUrl);
+    }
+    setShareSuccessMsg('تم تكييف وحفظ الصورة الشخصية بنجاح على كارنيه العضوية والشهادة');
+    setTimeout(() => setShareSuccessMsg(null), 3500);
   };
 
   // Capture Card Element as Image
@@ -84,7 +85,9 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
     return await toPng(cardRef.current, {
       quality: 0.98,
       pixelRatio: 2.5,
-      cacheBust: true
+      cacheBust: true,
+      skipFonts: true,
+      fontEmbedCSS: ''
     });
   };
 
@@ -95,7 +98,9 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
       const blob = await toBlob(cardRef.current, {
         quality: 0.98,
         pixelRatio: 2.5,
-        cacheBust: true
+        cacheBust: true,
+        skipFonts: true,
+        fontEmbedCSS: ''
       });
 
       if (!blob) throw new Error('Failed to create card image blob');
@@ -173,13 +178,18 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
       const blob = await toBlob(cardRef.current, {
         quality: 0.98,
         pixelRatio: 2.2,
-        cacheBust: true
+        cacheBust: true,
+        skipFonts: true,
+        fontEmbedCSS: ''
       });
-      if (blob && navigator.clipboard && (window as any).ClipboardItem) {
-        await navigator.clipboard.write([
-          new (window as any).ClipboardItem({ 'image/png': blob })
-        ]);
-        setShareSuccessMsg('تم نسخ صورة الكارنيه للحافظة (يمكنك لصقها في أي تطبيق أو محادثة)');
+      if (blob) {
+        const copied = await copyImageBlobToClipboard(blob);
+        if (copied) {
+          setShareSuccessMsg('تم نسخ صورة الكارنيه للحافظة (يمكنك لصقها في أي تطبيق أو محادثة)');
+        } else {
+          await handleDownloadImageOnly();
+          setShareSuccessMsg('تم تحميل صورة الكارنيه بجهازك لتعذر النسخ المباشر للحافظة');
+        }
       } else {
         await handleDownloadImageOnly();
       }
@@ -204,34 +214,66 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
+  const handleFacebookShare = async () => {
+    if (!cardRef.current) return;
+    setIsExportingImage(true);
+    const sideText = isFlipped ? 'الخلفي' : 'الأمامي';
+    const fileName = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
+
+    try {
+      const blob = await toBlob(cardRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.5,
+        cacheBust: true,
+        skipFonts: true,
+        fontEmbedCSS: ''
+      });
+
+      if (!blob) throw new Error('Failed to generate card image blob');
+
+      const file = new File([blob], fileName, { type: 'image/png' });
+      const quote = `كارنيه عضوية السادة الأشراف بني هاشم بمصر - الشريف ${memberName} (${membershipNo})`;
+
+      // If browser supports sharing image files directly to Facebook / apps
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `كارنيه عضوية السادة الأشراف - ${memberName}`,
+          text: quote
+        });
+        setShareSuccessMsg('تم فتح نافذة مشاركة صورة الكارنيه بنجاح');
+      } else {
+        // Fallback: Download high-res card image file + copy image + open Facebook post composer
+        const dataUrl = await generateCardImage();
+        if (dataUrl) {
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = dataUrl;
+          link.click();
+        }
+        await copyImageBlobToClipboard(blob);
+        setShareSuccessMsg('تم تحميل صورة الكارنيه بنجاح 📸 وجاري فتح فيسبوك لإرفاق الصورة في المنشور');
+        
+        setTimeout(() => {
+          window.open('https://www.facebook.com/', '_blank');
+        }, 600);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Facebook share error:', err);
+        await handleDownloadImageOnly();
+        window.open('https://www.facebook.com/', '_blank');
+      }
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 5000);
+    }
+  };
+
   const handleDownload = () => {
     handleDownloadImageOnly();
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 2500);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setPhotoUrl(result);
-          if (onUpdateMemberPhoto) {
-            onUpdateMemberPhoto(result);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSelectPreset = (url: string) => {
-    setPhotoUrl(url);
-    if (onUpdateMemberPhoto) {
-      onUpdateMemberPhoto(url);
-    }
   };
 
   return (
@@ -257,12 +299,12 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsUploadingPhoto(!isUploadingPhoto)}
-              className="bg-[#fafaf7] hover:bg-emerald-50 text-[#064e3b] border border-[#064e3b]/30 p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-              title="تغيير الصورة الشخصية"
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="bg-emerald-50 hover:bg-emerald-100 text-[#064e3b] border border-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+              title="تعديل وتكييف أبعاد الصورة الشخصية"
             >
               <Camera className="w-4 h-4 text-[#d4af37]" />
-              <span className="hidden sm:inline">تغيير الصورة</span>
+              <span>تكييف الصورة</span>
             </button>
 
             <button
@@ -273,70 +315,6 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Photo Upload Panel (Expandable) */}
-        {isUploadingPhoto && (
-          <div className="bg-[#fafaf7] p-4 rounded-2xl border border-amber-200 text-xs space-y-3 no-print animate-fadeIn">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-[#064e3b] flex items-center gap-1.5">
-                <Upload className="w-4 h-4 text-[#d4af37]" />
-                <span>رفع وتعديل الصورة الشخصية للكارنيه</span>
-              </h4>
-              <button
-                onClick={() => setIsUploadingPhoto(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
-              >
-                إغلاق
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
-              <div className="w-20 h-24 rounded-2xl border-2 border-[#d4af37] overflow-hidden bg-slate-100 shadow-md shrink-0">
-                <img 
-                  src={photoUrl} 
-                  alt="الصورة الشخصية" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              <div className="space-y-2 flex-1 w-full text-center sm:text-right">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-3.5 py-1.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer text-xs"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>رفع صورة من جهازك</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  
-                  <span className="text-[11px] text-slate-500">أو اختر صورة رمزية:</span>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  {PRESET_AVATARS.map((url, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSelectPreset(url)}
-                      className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                        photoUrl === url ? 'border-[#064e3b] scale-110 shadow-md' : 'border-slate-300 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={url} alt="Preset" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Card Flip & Theme Selector */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs no-print">
@@ -368,8 +346,8 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               />
               <button
                 onClick={() => setCardTheme('diplomatic')}
-                className={`w-7 h-7 rounded-full bg-[#f8f6ee] border-2 cursor-pointer transition-all ${cardTheme === 'diplomatic' ? 'border-[#064e3b] ring-2 ring-[#064e3b]/30 scale-110' : 'border-slate-300 opacity-70'}`}
-                title="الأبيض الدبلوماسي المذهب"
+                className={`w-7 h-7 rounded-full bg-[#f4f0e2] border-2 cursor-pointer transition-all ${cardTheme === 'diplomatic' ? 'border-[#064e3b] ring-2 ring-[#d4af37]/60 scale-110' : 'border-slate-300 opacity-70'}`}
+                title="الدبلوماسي العاجي"
               />
             </div>
           </div>
@@ -391,13 +369,13 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
           </div>
         )}
 
-        {/* 3D Flippable Digital Membership Card */}
-        <div ref={cardRef} className="relative perspective-1000 min-h-[320px] sm:min-h-[350px]">
+        {/* 3D Flippable Digital Membership Card (Fixed aspect ratio 1.586:1 standard credit card size) */}
+        <div ref={cardRef} className="relative perspective-1000 min-h-[320px] sm:min-h-[340px]">
           
           {/* CARD FRONT */}
           {!isFlipped ? (
             <div 
-              className={`relative overflow-hidden rounded-3xl p-6 sm:p-7 shadow-2xl border-2 border-[#d4af37] space-y-5 transition-all animate-fadeIn ${
+              className={`relative overflow-hidden rounded-3xl p-5 sm:p-7 shadow-2xl border-2 border-[#d4af37] space-y-4 transition-all duration-300 animate-fadeIn ${
                 cardTheme === 'emerald'
                   ? 'bg-gradient-to-br from-[#064e3b] via-[#0b6e54] to-[#043e2f] text-white'
                   : cardTheme === 'gold'
@@ -407,136 +385,87 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
                   : 'bg-gradient-to-br from-[#fcfbf7] via-[#faf7ee] to-[#f4f0e2] text-slate-900 border-2 border-[#d4af37]'
               }`}
             >
-              {/* Luxury Guilloche Background & Shimmer */}
-              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:14px_14px] pointer-events-none"></div>
               
-              {/* Security Shimmer Line */}
-              <div className="absolute top-0 right-1/4 w-32 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"></div>
-
-              {/* Realistic Gold Contact Smart Chip */}
-              <div className="absolute top-7 left-7 w-12 h-10 rounded-lg bg-gradient-to-tr from-[#e6ca65] via-[#fff3b0] to-[#b38f26] border border-[#d4af37] p-1 shadow-md flex flex-col justify-between">
-                <div className="border-b border-amber-900/30 h-1"></div>
-                <div className="flex justify-between items-center px-1">
-                  <div className="w-1.5 h-1.5 rounded-full border border-amber-900/40"></div>
-                  <div className="w-1.5 h-1.5 rounded-full border border-amber-900/40"></div>
-                </div>
-                <div className="border-t border-amber-900/30 h-1"></div>
+              {/* Background Islamic Watermark */}
+              <div className="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none">
+                <span className="font-heritage text-9xl font-bold text-[#d4af37]">هاشم</span>
               </div>
 
-              {/* Card Top Header: Crest & Organization */}
-              <div className={`flex items-center justify-between relative z-10 border-b pb-3 pr-1 ${
-                cardTheme === 'diplomatic' ? 'border-[#d4af37]/40' : 'border-white/20'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#d4af37] p-0.5 flex items-center justify-center shadow-lg">
-                    <div className="w-full h-full bg-[#064e3b] rounded-[14px] flex items-center justify-center border border-[#d4af37]/60">
-                      <span className="text-[#d4af37] font-heritage font-bold text-base">هاشم</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className={`font-heritage text-lg sm:text-xl font-bold tracking-wide ${
-                      cardTheme === 'diplomatic' ? 'text-[#064e3b]' : 'text-white'
-                    }`}>
-                      السادة الأشراف بني هاشم في مصر
-                    </h4>
-                    <p className={`text-[11px] font-semibold ${
-                      cardTheme === 'diplomatic' ? 'text-amber-800' : 'text-emerald-200'
-                    }`}>
-                      بطاقة عضوية رسمية معتمدة • أمانة الأنساب بمصر
-                    </p>
-                  </div>
+              {/* Card Top: Republic & Assembly Header */}
+              <div className="flex items-center justify-between border-b border-[#d4af37]/40 pb-3 relative z-10">
+                <div className="text-right space-y-0.5">
+                  <span className={`text-[10px] sm:text-xs font-bold block ${
+                    cardTheme === 'diplomatic' ? 'text-slate-600' : 'text-slate-200'
+                  }`}>
+                    جمهورية مصر العربية
+                  </span>
+                  <span className="text-xs sm:text-sm font-heritage font-bold text-[#d4af37] block">
+                    السادة الأشراف بني هاشم
+                  </span>
                 </div>
 
-                <div className="text-left hidden sm:block">
-                  <span className={`font-mono text-xs font-bold px-3 py-1 rounded-lg border block ${
-                    cardTheme === 'diplomatic' 
-                      ? 'bg-[#064e3b] text-[#d4af37] border-[#d4af37]' 
-                      : 'bg-black/40 text-[#d4af37] border-[#d4af37]/40'
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[#d4af37] bg-[#064e3b] p-1 flex items-center justify-center shadow-lg">
+                  <span className="font-heritage text-[9px] font-bold text-[#d4af37] text-center leading-tight">
+                    بني<br/>هاشم
+                  </span>
+                </div>
+
+                <div className="text-left space-y-0.5">
+                  <span className={`text-[9px] sm:text-[10px] block ${
+                    cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-slate-300'
                   }`}>
+                    بطاقة إثبات نسب وعضوية
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[#d4af37] block">
                     {membershipNo}
                   </span>
-                  <span className={`text-[9px] block mt-0.5 font-bold ${
-                    cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-emerald-300/80'
-                  }`}>
-                    كود السجل العام
-                  </span>
                 </div>
               </div>
 
-              {/* Card Middle: Member Photo & Identity Details */}
-              <div className="flex items-center gap-5 relative z-10 pt-1">
-                
-                {/* Member Photo Frame with Gold Rim & Verification Seal */}
-                <div className="relative shrink-0">
-                  <div className="w-24 h-30 sm:w-28 sm:h-34 rounded-2xl border-3 border-[#d4af37] overflow-hidden shadow-2xl bg-black/20">
-                    <img 
-                      src={photoUrl} 
-                      alt={memberName} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <div 
-                    title="سند نسبي معتمد"
-                    className="absolute -bottom-2.5 -left-2.5 bg-[#064e3b] text-[#d4af37] p-1.5 rounded-full border-2 border-[#d4af37] shadow-xl"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
+              {/* Card Center: Member Details & Photo */}
+              <div className="flex items-center gap-4 relative z-10 py-1">
+                {/* Photo fitted into 3:4 aspect ratio */}
+                <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-2xl border-2 border-[#d4af37] overflow-hidden shadow-lg bg-slate-900 shrink-0 relative group">
+                  <img 
+                    src={photoUrl} 
+                    alt={memberName} 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer" 
+                  />
+                  <div className="absolute inset-0 bg-[#064e3b]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <CheckCircle2 className="w-6 h-6 text-[#d4af37]" />
                   </div>
                 </div>
 
-                {/* Member Text Info */}
-                <div className="space-y-2 flex-1">
+                {/* Member Info */}
+                <div className="space-y-1.5 flex-1 min-w-0">
                   <div>
-                    <span className={`text-[10px] block font-bold ${
-                      cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-emerald-200'
-                    }`}>
-                      اسم الشريف الكامل:
-                    </span>
-                    <h3 className={`text-base sm:text-lg font-bold font-heritage leading-tight ${
+                    <span className="text-[10px] text-[#d4af37] font-bold block">الاسم الشريف الكامل:</span>
+                    <h4 className={`text-base sm:text-lg font-bold font-heritage truncate ${
                       cardTheme === 'diplomatic' ? 'text-[#064e3b]' : 'text-white'
                     }`}>
                       {memberName}
-                    </h3>
+                    </h4>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className={`p-2 rounded-xl border ${
-                      cardTheme === 'diplomatic'
-                        ? 'bg-white/80 border-[#d4af37]/40'
-                        : 'bg-black/25 border-white/10'
-                    }`}>
-                      <span className={`text-[10px] block ${
-                        cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-emerald-200'
-                      }`}>
-                        الفرع والبيت الهاشمي:
-                      </span>
-                      <span className="font-bold text-[#d4af37] text-[11px] sm:text-xs line-clamp-1">
-                        {branchName}
-                      </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                    <div>
+                      <span className="text-[9px] text-slate-400 block font-bold">الفرع الهاشمي:</span>
+                      <span className="text-[11px] font-bold text-[#d4af37] truncate block">{branchName}</span>
                     </div>
 
-                    <div className={`p-2 rounded-xl border ${
-                      cardTheme === 'diplomatic'
-                        ? 'bg-white/80 border-[#d4af37]/40'
-                        : 'bg-black/25 border-white/10'
-                    }`}>
-                      <span className={`text-[10px] block ${
-                        cardTheme === 'diplomatic' ? 'text-slate-500' : 'text-emerald-200'
-                      }`}>
-                        مقر الإقامة والمركز:
-                      </span>
-                      <span className={`font-bold text-[11px] sm:text-xs line-clamp-1 ${
-                        cardTheme === 'diplomatic' ? 'text-slate-800' : 'text-white'
-                      }`}>
-                        {city} - {country}
+                    <div>
+                      <span className="text-[9px] text-slate-400 block font-bold">البيت / العشيرة:</span>
+                      <span className={`text-[11px] truncate block ${cardTheme === 'diplomatic' ? 'text-slate-700' : 'text-slate-200'}`}>
+                        {subClan}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Security Microtext Line */}
-              <div className="text-[8px] text-center tracking-widest uppercase opacity-60 border-t border-b border-white/10 py-0.5 overflow-hidden whitespace-nowrap">
+              {/* Middle Bar: Golden Lineage Ribbon */}
+              <div className="bg-[#d4af37]/20 border-y border-[#d4af37]/40 py-1 px-3 text-[10px] font-heritage font-bold text-center text-[#d4af37] relative z-10 truncate">
                 • السادة الأشراف بني هاشم بمصر • نقابة الأشراف • أمانة الأنساب • توثيق السجلات الشرعية •
               </div>
 
@@ -557,8 +486,8 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="w-12 h-12 bg-white rounded-xl p-1 flex items-center justify-center text-slate-900 shadow-md border border-[#d4af37]/60">
-                    <QrCode className="w-10 h-10" />
+                  <div className="w-11 h-11 bg-white rounded-xl p-1 flex items-center justify-center text-slate-900 shadow-md border border-[#d4af37]/60">
+                    <QrCode className="w-9 h-9" />
                   </div>
                 </div>
               </div>
@@ -567,7 +496,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
           ) : (
             /* CARD BACK */
             <div 
-              className={`relative overflow-hidden rounded-3xl p-6 sm:p-7 shadow-2xl border-2 border-[#d4af37] space-y-4 transition-all animate-fadeIn ${
+              className={`relative overflow-hidden rounded-3xl p-5 sm:p-7 shadow-2xl border-2 border-[#d4af37] space-y-3 transition-all animate-fadeIn ${
                 cardTheme === 'emerald'
                   ? 'bg-gradient-to-br from-[#064e3b] via-[#0b6e54] to-[#043e2f] text-white'
                   : cardTheme === 'gold'
@@ -578,19 +507,19 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               }`}
             >
               {/* Magnetic Strip */}
-              <div className="w-full h-11 bg-black/90 -mx-6 sm:-mx-7 mb-2 border-y border-white/10 flex items-center justify-end px-6">
+              <div className="w-full h-10 bg-black/90 -mx-5 sm:-mx-7 mb-1 border-y border-white/10 flex items-center justify-end px-6">
                 <span className="text-[9px] text-[#d4af37] font-mono tracking-widest">
                   SECURE HASHIMITE CHIP ENCODING
                 </span>
               </div>
 
               {/* Lineage Summary */}
-              <div className="space-y-1.5 text-xs">
-                <span className="text-[11px] text-[#d4af37] font-bold block flex items-center gap-1">
+              <div className="space-y-1 text-xs">
+                <span className="text-[10px] text-[#d4af37] font-bold block flex items-center gap-1">
                   <FileCheck className="w-3.5 h-3.5" />
                   سند وسلسلة النسب الشريف المعتمدة:
                 </span>
-                <p className={`text-[11px] font-heritage leading-relaxed p-3 rounded-xl border line-clamp-3 ${
+                <p className={`text-[11px] font-heritage leading-relaxed p-2.5 rounded-xl border line-clamp-3 ${
                   cardTheme === 'diplomatic'
                     ? 'bg-white text-slate-800 border-[#d4af37]/40'
                     : 'bg-black/30 text-slate-200 border-white/10'
@@ -600,44 +529,29 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               </div>
 
               {/* Identity & Legal Security Box */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className={`p-2.5 rounded-xl border space-y-0.5 ${
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className={`p-2 rounded-xl border space-y-0.5 ${
                   cardTheme === 'diplomatic'
                     ? 'bg-white text-slate-800 border-[#d4af37]/40'
                     : 'bg-black/30 text-white border-white/10'
                 }`}>
-                  <span className="text-[10px] text-slate-400 block font-bold">الرقم القومي / المرجعي:</span>
-                  <span className="font-mono font-bold text-[#d4af37]">{nationalId}</span>
+                  <span className="text-[9px] text-slate-400 block font-bold">الرقم القومي:</span>
+                  <span className="font-mono font-bold text-[#d4af37] text-xs">{nationalId}</span>
                 </div>
                 
-                <div className={`p-2.5 rounded-xl border space-y-0.5 ${
+                <div className={`p-2 rounded-xl border space-y-0.5 ${
                   cardTheme === 'diplomatic'
                     ? 'bg-white text-slate-800 border-[#d4af37]/40'
                     : 'bg-black/30 text-white border-white/10'
                 }`}>
-                  <span className="text-[10px] text-slate-400 block font-bold">جهة الاعتماد:</span>
-                  <span className="font-bold">أمانة الأنساب بمصر</span>
+                  <span className="text-[9px] text-slate-400 block font-bold">جهة الاعتماد:</span>
+                  <span className="font-bold text-xs">أمانة الأنساب بمصر</span>
                 </div>
               </div>
 
-              {/* Barcode and Signature */}
-              <div className={`flex items-center justify-between pt-2 border-t ${
-                cardTheme === 'diplomatic' ? 'border-[#d4af37]/40' : 'border-white/20'
-              }`}>
-                <div>
-                  <span className="text-[9px] text-slate-400 block">توقيع أمانة الأنساب:</span>
-                  <span className="font-heritage text-xs text-[#d4af37] font-bold">د. إبراهيم بن محمد الجعفري</span>
-                </div>
-
-                <div className="text-left font-mono text-[9px] tracking-widest bg-black/40 text-[#d4af37] px-3 py-1 rounded border border-[#d4af37]/40">
-                  |||||||| | |||||| || |||||||| ||||
-                </div>
-              </div>
-
-              <div className={`text-center text-[9px] pt-1 font-bold ${
-                cardTheme === 'diplomatic' ? 'text-[#064e3b]' : 'text-emerald-300/80'
-              }`}>
-                تجمع السادة الأشراف بني هاشم في جمهورية مصر العربية • الأمانة العامة
+              {/* Security Legal Notice */}
+              <div className="text-[9px] text-slate-400 leading-tight pt-1">
+                * هذه البطاقة وثيقة نسب رسمية صادرة بموجب المشجرات وسجلات الأنساب المحفوظة، وتستخدم لإثبات الانتساب والتواصل بين أبناء العمومة.
               </div>
 
             </div>
@@ -649,15 +563,30 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2 no-print">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsUploadingPhoto(true)}
+              onClick={() => setIsPhotoModalOpen(true)}
               className="text-slate-600 hover:text-[#064e3b] font-bold flex items-center gap-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition-all"
             >
               <Camera className="w-4 h-4 text-[#d4af37]" />
-              <span>تغيير الصورة</span>
+              <span>تكييف الصورة</span>
             </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Facebook Share Button */}
+            <button
+              onClick={handleFacebookShare}
+              disabled={isExportingImage}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="مشاركة وتصدير صورة الكارنيه كمنشور على الفيسبوك"
+            >
+              {isExportingImage ? (
+                <Loader2 className="w-4 h-4 text-white animate-spin" />
+              ) : (
+                <Facebook className="w-4 h-4 text-white" />
+              )}
+              <span>مشاركة صورة الكارنيه على فيسبوك</span>
+            </button>
+
             {/* Share as Image Button */}
             <button
               id="share-card-image-btn"
@@ -671,7 +600,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               ) : (
                 <Share2 className="w-4 h-4 text-[#d4af37]" />
               )}
-              <span>{isExportingImage ? 'جاري تجهيز الصورة...' : 'مشاركة الكارنيه كصورة'}</span>
+              <span>{isExportingImage ? 'جاري تجهيز الصورة...' : 'مشاركة كصورة'}</span>
             </button>
 
             <button
@@ -699,7 +628,7 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
             >
               {downloaded ? <Check className="w-4 h-4 text-[#d4af37]" /> : <Download className="w-4 h-4" />}
-              <span>{downloaded ? 'تم الحفظ' : 'تحميل صورة PNG'}</span>
+              <span>{downloaded ? 'تم الحفظ' : 'تحميل PNG'}</span>
             </button>
 
             <button
@@ -713,6 +642,16 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
         </div>
 
       </div>
+
+      {/* Photo Upload & Aspect Ratio Modal */}
+      <PhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhotoUrl={photoUrl}
+        onSavePhoto={handlePhotoUpdated}
+        title="تكييف وضبط صورة كارنيه العضوية"
+        subtitle="يقوم المعالج بضبط أبعاد الصورة بنسبة (3:4) لتتوافق مع بطاقات الهوية الرسمية دون تشويه"
+      />
     </div>
   );
 };

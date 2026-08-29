@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NewsItem, EventItem } from '../types';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { 
   Newspaper, 
   Calendar, 
@@ -97,8 +98,8 @@ export const NewsAndEventsView: React.FC<NewsAndEventsViewProps> = ({
     return matchesSearch;
   });
 
-  const handleShare = (id: string, title: string) => {
-    navigator.clipboard?.writeText(`${window.location.origin} - ${title}`);
+  const handleShare = async (id: string, title: string) => {
+    await copyTextToClipboard(`${window.location.origin} - ${title}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };

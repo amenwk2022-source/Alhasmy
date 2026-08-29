@@ -43,6 +43,8 @@ import {
 import { MemberCardModal } from './MemberCardModal';
 import { CertificateModal } from './CertificateModal';
 import { PersonalFamilyTreeModal } from './PersonalFamilyTreeModal';
+import { PhotoUploadModal } from './PhotoUploadModal';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 interface UserProfileViewProps {
   user: UserProfile;
@@ -63,6 +65,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -168,8 +171,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
     if (selectedNode?.id === id) setSelectedNode(null);
   };
 
-  const handleShareProfile = () => {
-    navigator.clipboard?.writeText(window.location.href);
+  const handleShareProfile = async () => {
+    await copyTextToClipboard(window.location.href);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -246,9 +249,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 
                 {/* Photo Change Quick Button */}
                 <button
-                  onClick={() => setIsCardModalOpen(true)}
+                  onClick={() => setIsPhotoModalOpen(true)}
                   className="absolute bottom-1 right-1 bg-[#064e3b] text-[#d4af37] p-2 rounded-2xl border-2 border-white shadow hover:scale-105 transition-all cursor-pointer"
-                  title="تغيير الصورة في الكارنيه"
+                  title="رفع وتكييف الصورة الشخصية الرسمية"
                 >
                   <Camera className="w-4 h-4" />
                 </button>
@@ -767,6 +770,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         <CertificateModal
           member={user}
           onClose={() => setIsCertModalOpen(false)}
+          onUpdateMemberPhoto={handleUpdatePhoto}
         />
       )}
 
@@ -778,6 +782,16 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           onUpdateUser={onUpdateUser}
         />
       )}
+
+      {/* Modal 4: Official Photo Upload & Adaptive Cropping */}
+      <PhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhotoUrl={user.avatarUrl}
+        onSavePhoto={handleUpdatePhoto}
+        title="تكييف وضبط الصورة الشخصية الرسمية"
+        subtitle="يقوم المعالج الذكي بقص الصورة وتوسيطها بنسبة الأبعاد المناسبة لبطاقات العضوية والشهادات"
+      />
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (

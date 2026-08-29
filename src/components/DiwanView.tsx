@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DiwanNotice, NoticeCategory } from '../types';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { 
   Sparkles, 
   Heart, 
@@ -65,12 +66,10 @@ export const DiwanView: React.FC<DiwanViewProps> = ({
     }));
   };
 
-  const handleShare = (notice: DiwanNotice) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(`${notice.title} - تجمع بني هاشم: ${notice.content}`);
-      setCopiedId(notice.id);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
+  const handleShare = async (notice: DiwanNotice) => {
+    await copyTextToClipboard(`${notice.title} - تجمع بني هاشم: ${notice.content}`);
+    setCopiedId(notice.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (

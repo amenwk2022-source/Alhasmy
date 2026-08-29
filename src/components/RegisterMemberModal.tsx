@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FamilyBranch, RegisteredMember } from '../types';
-import { ShieldCheck, PlusCircle, User, Phone, Mail, MapPin, CheckCircle2, FileText } from 'lucide-react';
+import { ShieldCheck, PlusCircle, User, Phone, Mail, MapPin, CheckCircle2, FileText, Camera, Upload } from 'lucide-react';
+import { PhotoUploadModal } from './PhotoUploadModal';
 
 interface RegisterMemberModalProps {
   branches: FamilyBranch[];
@@ -23,6 +24,8 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [lineageNote, setLineageNote] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [newMember, setNewMember] = useState<RegisteredMember | null>(null);
 
@@ -44,7 +47,8 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
       email: email.trim() || 'member@banihashim.org.eg',
       joinDate: '1447/08/28 هـ',
       isVerified: true,
-      generation: 39
+      generation: 39,
+      avatarUrl: avatarUrl || undefined
     };
 
     setNewMember(member);
@@ -60,33 +64,37 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
     setPhone('');
     setEmail('');
     setLineageNote('');
+    setAvatarUrl('');
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 animate-fadeIn">
-        
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <span className="bg-[#fcfbf7] text-[#d4af37] border border-[#d4af37]/40 text-[11px] font-bold px-3 py-1 rounded-full">
-              عضوية تجمع بني هاشم
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold font-heritage text-[#064e3b] mt-1">
-              تسجيل انتساب فرد / عائلة جديدة
-            </h2>
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border-2 border-[#d4af37] max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-[#064e3b]">
+              <PlusCircle className="w-5 h-5 text-[#064e3b]" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold font-heritage text-[#064e3b]">
+                تسجيل وقيد عضوية شريف جديد
+              </h3>
+              <p className="text-xs text-slate-500">
+                إضافة بيانات الشريف للسجل الإلكتروني العام وإصدار كود القيد الرسمي
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg hover:bg-slate-100"
           >
             ✕
           </button>
         </div>
 
         {submitted && newMember ? (
-          <div className="bg-emerald-50/80 border border-emerald-200 rounded-3xl p-6 sm:p-8 text-center space-y-4 animate-fadeIn">
+          <div className="text-center py-8 space-y-4 animate-fadeIn">
             <div className="w-16 h-16 bg-[#064e3b] text-[#d4af37] rounded-full flex items-center justify-center mx-auto shadow-lg">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -97,7 +105,12 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
               أهلاً وسهلاً بكم في رحاب تجمع بني هاشم. تم إصدار رقم عضويتكم الرسمي واعتماد بياناتكم في السجل الإلكتروني.
             </p>
 
-            <div className="bg-white p-4 rounded-2xl border border-emerald-200 inline-block text-right space-y-1 text-xs">
+            <div className="bg-white p-4 rounded-2xl border border-emerald-200 inline-block text-right space-y-1 text-xs shadow-sm">
+              {newMember.avatarUrl && (
+                <div className="w-16 h-20 rounded-xl border border-[#d4af37] overflow-hidden mx-auto mb-2 shadow-xs">
+                  <img src={newMember.avatarUrl} alt={newMember.fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+              )}
               <div><span className="text-slate-500">الاسم:</span> <strong className="text-slate-900">{newMember.fullName}</strong></div>
               <div><span className="text-slate-500">رقم العضوية:</span> <strong className="font-mono text-[#064e3b] font-bold">{newMember.membershipNumber}</strong></div>
               <div><span className="text-slate-500">الفرع:</span> <strong className="text-[#064e3b]">{newMember.branch}</strong></div>
@@ -114,6 +127,37 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            
+            {/* Member Photo Upload & Auto Aspect Ratio Adaptation */}
+            <div className="bg-[#fafaf7] p-3.5 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-18 rounded-xl border-2 border-[#d4af37] overflow-hidden bg-slate-200 shrink-0 shadow-xs">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="الصورة الشخصية" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <User className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-xs">الصورة الشخصية للكارنيه والشهادة</h4>
+                  <p className="text-[11px] text-slate-500">
+                    {avatarUrl ? 'تم تكييف الصورة بأبعاد متناسقة للطباعة والمشاركة' : 'ارفع صورة شخصية وسيتكفل النظام بضبط أبعادها تلقائياً'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsPhotoModalOpen(true)}
+                className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Camera className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>{avatarUrl ? 'تعديل الصورة' : 'رفع وتكييف صورة'}</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="font-bold text-slate-700">الاسم الرباعي الكامل مع اللقب *</label>
@@ -265,7 +309,18 @@ export const RegisterMemberModal: React.FC<RegisterMemberModalProps> = ({
             </div>
           </form>
         )}
+
       </div>
+
+      {/* Photo upload modal for registration */}
+      <PhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhotoUrl={avatarUrl}
+        onSavePhoto={(url) => setAvatarUrl(url)}
+        title="تكييف وضبط صورة العضوية المسجلة"
+        subtitle="يتم قص وتوسيط الصورة تلقائياً لتناسب أبعاد بطاقات العضوية الرسمية والشهادات"
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import {
   ForumNotification, 
   UserProfile 
 } from '../types';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { 
   MessageSquare, 
   Pin, 
@@ -176,8 +177,8 @@ export const ForumView: React.FC<ForumViewProps> = ({
     setReplyContent('');
   };
 
-  const handleShareTopic = (topicId: string, title: string) => {
-    navigator.clipboard?.writeText(`${window.location.origin}#topic-${topicId}`);
+  const handleShareTopic = async (topicId: string, _title: string) => {
+    await copyTextToClipboard(`${window.location.origin}#topic-${topicId}`);
     setCopiedTopicId(topicId);
     setTimeout(() => setCopiedTopicId(null), 2000);
   };
