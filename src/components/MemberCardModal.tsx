@@ -17,8 +17,14 @@ import {
   CheckCircle2,
   Lock,
   Layers,
-  Fingerprint
+  Fingerprint,
+  Share2,
+  Copy,
+  MessageCircle,
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
+import { toPng, toBlob } from 'html-to-image';
 
 interface MemberCardModalProps {
   member: RegisteredMember | UserProfile | null;
@@ -47,7 +53,11 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
   });
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [cardTheme, setCardTheme] = useState<'emerald' | 'gold' | 'black' | 'diplomatic'>('emerald');
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   if (!member) return null;
 
@@ -68,7 +78,134 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
     window.print();
   };
 
+  // Capture Card Element as Image
+  const generateCardImage = async () => {
+    if (!cardRef.current) return null;
+    return await toPng(cardRef.current, {
+      quality: 0.98,
+      pixelRatio: 2.5,
+      cacheBust: true
+    });
+  };
+
+  const handleShareAsImage = async () => {
+    if (!cardRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const blob = await toBlob(cardRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.5,
+        cacheBust: true
+      });
+
+      if (!blob) throw new Error('Failed to create card image blob');
+
+      const sideText = isFlipped ? 'ظهر' : 'وجه';
+      const fileName = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      // Native Web Share with image
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `كارنيه عضوية الشريف ${memberName}`,
+          text: `الهوية الرقمية الرسمية للسادة الأشراف بني هاشم بمصر - الشريف ${memberName} (${membershipNo})`,
+          files: [file]
+        });
+        setShareSuccessMsg('تمت مشاركة صورة الكارنيه بنجاح!');
+      } else {
+        // Fallback direct download
+        const dataUrl = await generateCardImage();
+        if (dataUrl) {
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = dataUrl;
+          link.click();
+        }
+        setShareSuccessMsg('تم حفظ صورة الكارنيه عالية الدقة PNG');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing card image:', err);
+        try {
+          const dataUrl = await generateCardImage();
+          if (dataUrl) {
+            const link = document.createElement('a');
+            link.download = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
+            link.href = dataUrl;
+            link.click();
+            setShareSuccessMsg('تم تحميل صورة الكارنيه بجهازك');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleDownloadImageOnly = async () => {
+    if (!cardRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const dataUrl = await generateCardImage();
+      if (dataUrl) {
+        const sideText = isFlipped ? 'الخلفي' : 'الأمامي';
+        const link = document.createElement('a');
+        link.download = `كارنيه-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}-${sideText}.png`;
+        link.href = dataUrl;
+        link.click();
+        setShareSuccessMsg(`تم تحميل صورة الكارنيه (${sideText}) بجودة عالية`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 3000);
+    }
+  };
+
+  const handleCopyCardImage = async () => {
+    if (!cardRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const blob = await toBlob(cardRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.2,
+        cacheBust: true
+      });
+      if (blob && navigator.clipboard && (window as any).ClipboardItem) {
+        await navigator.clipboard.write([
+          new (window as any).ClipboardItem({ 'image/png': blob })
+        ]);
+        setShareSuccessMsg('تم نسخ صورة الكارنيه للحافظة (يمكنك لصقها في أي تطبيق أو محادثة)');
+      } else {
+        await handleDownloadImageOnly();
+      }
+    } catch (e) {
+      console.error(e);
+      await handleDownloadImageOnly();
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = encodeURIComponent(
+      `*كارنيه عضوية السادة الأشراف بني هاشم في مصر*\n` +
+      `👤 الاسم: الشريف ${memberName}\n` +
+      `📜 الفرع: ${branchName} (${subClan})\n` +
+      `🔢 كود القيد: ${membershipNo}\n` +
+      `🏛️ أمانة الأنساب والتوثيق - جمهورية مصر العربية\n` +
+      `🔗 بوابة السادة الأشراف: https://banihashim.org.eg`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
   const handleDownload = () => {
+    handleDownloadImageOnly();
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 2500);
   };
@@ -238,8 +375,24 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
           </div>
         </div>
 
+        {/* Success / Notification Banner */}
+        {shareSuccessMsg && (
+          <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-900 p-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-between gap-2 shadow-lg animate-fadeIn no-print">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{shareSuccessMsg}</span>
+            </div>
+            <button 
+              onClick={() => setShareSuccessMsg(null)}
+              className="text-emerald-700 hover:text-emerald-950 font-bold px-2 py-0.5 rounded cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* 3D Flippable Digital Membership Card */}
-        <div className="relative perspective-1000 min-h-[320px] sm:min-h-[350px]">
+        <div ref={cardRef} className="relative perspective-1000 min-h-[320px] sm:min-h-[350px]">
           
           {/* CARD FRONT */}
           {!isFlipped ? (
@@ -494,29 +647,67 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
 
         {/* Modal Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2 no-print">
-          <button
-            onClick={() => setIsUploadingPhoto(true)}
-            className="text-slate-600 hover:text-[#064e3b] font-bold flex items-center gap-1.5 cursor-pointer"
-          >
-            <Camera className="w-4 h-4 text-[#d4af37]" />
-            <span>تغيير الصورة في الكارنيه</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsUploadingPhoto(true)}
+              className="text-slate-600 hover:text-[#064e3b] font-bold flex items-center gap-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition-all"
+            >
+              <Camera className="w-4 h-4 text-[#d4af37]" />
+              <span>تغيير الصورة</span>
+            </button>
+          </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Share as Image Button */}
+            <button
+              id="share-card-image-btn"
+              onClick={handleShareAsImage}
+              disabled={isExportingImage}
+              className="bg-gradient-to-r from-[#064e3b] to-emerald-700 hover:from-emerald-800 hover:to-[#064e3b] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] border border-[#d4af37]/50 disabled:opacity-50"
+              title="مشاركة صورة الكارنيه مباشرة عبر الواتساب أو التطبيقات"
+            >
+              {isExportingImage ? (
+                <Loader2 className="w-4 h-4 text-[#d4af37] animate-spin" />
+              ) : (
+                <Share2 className="w-4 h-4 text-[#d4af37]" />
+              )}
+              <span>{isExportingImage ? 'جاري تجهيز الصورة...' : 'مشاركة الكارنيه كصورة'}</span>
+            </button>
+
+            <button
+              onClick={handleCopyCardImage}
+              disabled={isExportingImage}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="نسخ صورة الكارنيه للحافظة"
+            >
+              <Copy className="w-4 h-4 text-[#064e3b]" />
+              <span className="hidden sm:inline">نسخ</span>
+            </button>
+
+            <button
+              onClick={handleWhatsAppShare}
+              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-3.5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300"
+              title="مشاركة تفاصيل الكارنيه عبر الواتساب"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              <span className="hidden sm:inline">واتساب</span>
+            </button>
+
             <button
               onClick={handleDownload}
-              className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+              disabled={isExportingImage}
+              className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
             >
               {downloaded ? <Check className="w-4 h-4 text-[#d4af37]" /> : <Download className="w-4 h-4" />}
-              <span>{downloaded ? 'تم حفظ الكارنيه' : 'حفظ الكارنيه (صورة رقمية)'}</span>
+              <span>{downloaded ? 'تم الحفظ' : 'تحميل صورة PNG'}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-4 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-4 py-2.5 rounded-xl font-black transition-all shadow flex items-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>طباعة الكارنيه</span>
+              <span>طباعة</span>
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UserProfile, RegisteredMember } from '../types';
 import { 
   ShieldCheck, 
@@ -15,8 +15,14 @@ import {
   Building,
   CheckCircle2,
   Lock,
-  Layers
+  Layers,
+  Share2,
+  Image as ImageIcon,
+  Copy,
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
+import { toPng, toBlob } from 'html-to-image';
 
 interface CertificateModalProps {
   member: UserProfile | RegisteredMember | null;
@@ -29,6 +35,11 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ member, onCl
   const [showPhoto, setShowPhoto] = useState(true);
   const [customDedication, setCustomDedication] = useState('');
   const [isCustomizing, setIsCustomizing] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+
+  const certRef = useRef<HTMLDivElement>(null);
 
   if (!member) return null;
 
@@ -45,7 +56,136 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ member, onCl
     window.print();
   };
 
+  // Generate Image Blob or Data URL
+  const generateCertificateImage = async () => {
+    if (!certRef.current) return null;
+    return await toPng(certRef.current, {
+      quality: 0.98,
+      pixelRatio: 2.2,
+      cacheBust: true,
+      backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
+    });
+  };
+
+  const handleShareAsImage = async () => {
+    if (!certRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const blob = await toBlob(certRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.2,
+        cacheBust: true,
+        backgroundColor: theme === 'emerald' ? '#fdfcf7' : theme === 'parchment' ? '#fcf8ec' : '#fafaf7'
+      });
+
+      if (!blob) throw new Error('Failed to create image blob');
+
+      const fileName = `شهادة-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      // Check if native Web Share with files is supported
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `شهادة انتساب الشريف ${memberName}`,
+          text: `شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر - الشريف ${memberName} (كود القيد: ${membershipNo})`,
+          files: [file]
+        });
+        setShareSuccessMsg('تمت مشاركة الشهادة بنجاح!');
+      } else {
+        // Fallback: Download PNG directly + open share menu options
+        const dataUrl = await generateCertificateImage();
+        if (dataUrl) {
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = dataUrl;
+          link.click();
+        }
+        setShareSuccessMsg('تم حفظ الشهادة كصورة عالية الدقة PNG');
+        setShowShareMenu(true);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing image:', err);
+        // Fallback: Download image
+        try {
+          const dataUrl = await generateCertificateImage();
+          if (dataUrl) {
+            const link = document.createElement('a');
+            link.download = `شهادة-الشريف-${memberName.replace(/\s+/g, '_')}.png`;
+            link.href = dataUrl;
+            link.click();
+            setShareSuccessMsg('تم حفظ الشهادة كصورة PNG بجهازك');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleDownloadImageOnly = async () => {
+    if (!certRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const dataUrl = await generateCertificateImage();
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.download = `شهادة-انتساب-الشريف-${memberName.replace(/\s+/g, '_')}-${membershipNo}.png`;
+        link.href = dataUrl;
+        link.click();
+        setShareSuccessMsg('تم تحميل الصورة بجودة عالية PNG');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 3000);
+    }
+  };
+
+  const handleCopyImageToClipboard = async () => {
+    if (!certRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const blob = await toBlob(certRef.current, {
+        quality: 0.98,
+        pixelRatio: 2,
+        cacheBust: true
+      });
+      if (blob && navigator.clipboard && (window as any).ClipboardItem) {
+        await navigator.clipboard.write([
+          new (window as any).ClipboardItem({ 'image/png': blob })
+        ]);
+        setShareSuccessMsg('تم نسخ صورة الشهادة للحافظة (يمكنك لصقها مباشرة في الواتساب أو البرامج)');
+      } else {
+        await handleDownloadImageOnly();
+      }
+    } catch (e) {
+      console.error(e);
+      await handleDownloadImageOnly();
+    } finally {
+      setIsExportingImage(false);
+      setTimeout(() => setShareSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = encodeURIComponent(
+      `*شهادة انضمام وانتساب السادة الأشراف بني هاشم في مصر*\n` +
+      `👤 الاسم: الشريف ${memberName}\n` +
+      `📜 الفرع: ${branchName}\n` +
+      `🔢 كود القيد: ${membershipNo}\n` +
+      `🏛️ أمانة الأنساب والتوثيق - جمهورية مصر العربية\n` +
+      `🔗 رابط بوابة السادة الأشراف: https://banihashim.org.eg`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
   const handleDownload = () => {
+    handleDownloadImageOnly();
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 2500);
   };
@@ -151,8 +291,25 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ member, onCl
           </div>
         )}
 
+        {/* Success / Notification Banner */}
+        {shareSuccessMsg && (
+          <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-900 p-3.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-between gap-2 shadow-lg animate-fadeIn no-print">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{shareSuccessMsg}</span>
+            </div>
+            <button 
+              onClick={() => setShareSuccessMsg(null)}
+              className="text-emerald-700 hover:text-emerald-950 font-bold px-2 py-0.5 rounded cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* PRINTABLE OFFICIAL CERTIFICATE DOCUMENT CONTAINER */}
         <div 
+          ref={certRef}
           id="official-certificate-print" 
           className={`relative p-6 sm:p-12 rounded-3xl transition-all border-8 shadow-2xl print:border-4 print:shadow-none print:m-0 print:p-8 ${
             theme === 'emerald'
@@ -312,25 +469,65 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ member, onCl
 
         {/* Modal Bottom Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2 no-print">
-          <div className="text-slate-500 text-xs">
-            * الوثيقة مجهزة ومعدة للطباعة بجودة A4 والتأطير والحفظ في سجلات الأسرة
+          <div className="text-slate-500 text-xs flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>يمكنك مشاركة الشهادة كصورة أو حفظها وطباعتها بجودة عالية</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Share as Image Button */}
+            <div className="relative">
+              <button
+                id="share-certificate-image-btn"
+                onClick={handleShareAsImage}
+                disabled={isExportingImage}
+                className="bg-gradient-to-r from-[#064e3b] to-emerald-700 hover:from-emerald-800 hover:to-[#064e3b] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02] border border-[#d4af37]/50 disabled:opacity-50"
+                title="مشاركة صورة الشهادة مباشرة عبر الواتساب أو التطبيقات"
+              >
+                {isExportingImage ? (
+                  <Loader2 className="w-4 h-4 text-[#d4af37] animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4 text-[#d4af37]" />
+                )}
+                <span>{isExportingImage ? 'جاري تجهيز الصورة...' : 'مشاركة الشهادة كصورة'}</span>
+              </button>
+            </div>
+
+            {/* Quick Actions Dropdown / Secondary Options */}
+            <button
+              onClick={handleCopyImageToClipboard}
+              disabled={isExportingImage}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="نسخ الصورة للحافظة للصقها مباشرة"
+            >
+              <Copy className="w-4 h-4 text-[#064e3b]" />
+              <span className="hidden sm:inline">نسخ الصورة</span>
+            </button>
+
+            <button
+              onClick={handleWhatsAppShare}
+              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-3.5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300"
+              title="مشاركة تفاصيل الوثيقة عبر الواتساب"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              <span className="hidden sm:inline">واتساب</span>
+            </button>
+
             <button
               onClick={handleDownload}
-              className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+              disabled={isExportingImage}
+              className="bg-[#064e3b] hover:bg-[#0b6e54] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer hover:scale-[1.02]"
             >
               {downloaded ? <Check className="w-4 h-4 text-[#d4af37]" /> : <Download className="w-4 h-4" />}
-              <span>{downloaded ? 'تم حفظ الشهادة' : 'حفظ الشهادة الرسمية (PDF)'}</span>
+              <span>{downloaded ? 'تم الحفظ' : 'تحميل صورة PNG'}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-6 py-2.5 rounded-xl font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#d4af37] hover:brightness-110 text-[#064e3b] px-4 sm:px-6 py-2.5 rounded-xl font-black transition-all shadow flex items-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>طباعة الشهادة الآن (A4)</span>
+              <span>طباعة (A4)</span>
             </button>
           </div>
         </div>
