@@ -845,14 +845,22 @@ export const OfficialDecreeModal: React.FC<OfficialDecreeModalProps> = ({
                       <div className="bg-gradient-to-r from-emerald-50/90 via-[#fcfbf7] to-amber-50/90 rounded-2xl p-4 border-2 border-[#d4af37] shadow-sm flex items-center justify-between gap-5">
                         <div className="flex items-center gap-4">
                           {/* Portrait with Golden Arabesque Trim */}
-                          <div className="relative shrink-0">
-                            <div className="w-22 h-26 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-md bg-white p-0.5">
+                          <div 
+                            onClick={() => setIsPhotoModalOpen(true)}
+                            className="relative shrink-0 cursor-pointer group"
+                            title="اضغط لتغيير الصورة"
+                          >
+                            <div className="w-22 h-26 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-md bg-white p-0.5 relative group-hover:border-[#064e3b] transition-all">
                               <img
                                 src={appointeePhotoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'}
                                 alt={appointeeName}
                                 className="w-full h-full object-cover rounded-xl"
                                 crossOrigin="anonymous"
                               />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[9px] font-bold rounded-xl transition-opacity">
+                                <Camera className="w-3.5 h-3.5 mb-0.5 text-[#d4af37]" />
+                                <span>تغيير</span>
+                              </div>
                             </div>
                             <div className="absolute -bottom-2 -right-2 bg-[#064e3b] text-[#d4af37] p-1 rounded-full border border-[#d4af37] shadow">
                               <BadgeCheck className="w-4 h-4" />
@@ -1014,6 +1022,13 @@ export const OfficialDecreeModal: React.FC<OfficialDecreeModalProps> = ({
       <PhotoUploadModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
+        onSavePhoto={(newUrl) => {
+          setAppointeePhotoUrl(newUrl);
+          setIncludePhoto(true);
+          setIsPhotoModalOpen(false);
+          setShareSuccessMsg('تم تحديث صورة المكرم / المعيَّن بنجاح');
+          setTimeout(() => setShareSuccessMsg(null), 3000);
+        }}
         onPhotoSelected={(newUrl) => {
           setAppointeePhotoUrl(newUrl);
           setIncludePhoto(true);
@@ -1023,6 +1038,7 @@ export const OfficialDecreeModal: React.FC<OfficialDecreeModalProps> = ({
         }}
         currentPhotoUrl={appointeePhotoUrl}
         title="رفع وتعديل صورة المكرم / المعيَّن بالقرار"
+        subtitle="قص وتكييف الصورة لتظهر متناسقة تماماً في وثيقة القرار الرسمية"
       />
 
     </div>

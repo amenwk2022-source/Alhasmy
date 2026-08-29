@@ -450,16 +450,30 @@ export default function App() {
   };
 
   const handleUpdateMemberPhoto = (photoUrl: string) => {
-    setCurrentUser((prev) => ({
-      ...prev,
-      avatarUrl: photoUrl,
-    }));
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        avatarUrl: photoUrl,
+      };
+      try {
+        localStorage.setItem('hashemite_current_user', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
     if (selectedMemberForCard) {
       setSelectedMemberForCard(prev => prev ? ({ ...prev, avatarUrl: photoUrl }) : null);
     }
     if (selectedMemberForCert) {
       setSelectedMemberForCert(prev => prev ? ({ ...prev, avatarUrl: photoUrl }) : null);
     }
+
+    // Also update member in global registry if matches
+    setMembers(prev => {
+      const currentMemberId = selectedMemberForCard?.id || selectedMemberForCert?.id;
+      if (!currentMemberId) return prev;
+      return prev.map(m => m.id === currentMemberId ? { ...m, avatarUrl: photoUrl } : m);
+    });
   };
 
   const handleUpdateMemberData = (updatedData: {

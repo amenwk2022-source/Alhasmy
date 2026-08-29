@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { RegisteredMember, UserProfile } from '../types';
 import { 
   ShieldCheck, 
@@ -63,6 +63,27 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
   const [cardTheme, setCardTheme] = useState<'emerald' | 'gold' | 'black' | 'diplomatic'>('emerald');
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState<string | null>(null);
+
+  // Synchronize photo and member data when member changes
+  useEffect(() => {
+    if (member) {
+      if ('avatarUrl' in member && member.avatarUrl) {
+        setPhotoUrl(member.avatarUrl);
+      }
+      if ('fullName' in member && member.fullName) {
+        setMemberName(member.fullName);
+      }
+      if (member.branch) {
+        setBranchName(member.branch);
+      }
+      if ('subClan' in member && member.subClan) {
+        setSubClan(member.subClan);
+      }
+      if (member.membershipNumber) {
+        setMembershipNo(member.membershipNumber);
+      }
+    }
+  }, [member]);
 
   const initialMemberName = member ? ('fullName' in member ? member.fullName : ((member as any).name || (member as any).recipientName || 'الشريف المكرم')) : 'الشريف المكرم';
   const initialMembershipNo = member ? (member.membershipNumber || (member as any).documentNumber || 'BH-EG-1447-0786') : 'BH-EG-1447-0786';
@@ -560,15 +581,20 @@ export const MemberCardModal: React.FC<MemberCardModalProps> = ({
               {/* Card Center: Member Details & Photo */}
               <div className="flex items-center gap-4 relative z-10 py-1">
                 {/* Photo fitted into 3:4 aspect ratio */}
-                <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-2xl border-2 border-[#d4af37] overflow-hidden shadow-lg bg-slate-900 shrink-0 relative group">
+                <div 
+                  onClick={() => setIsPhotoModalOpen(true)}
+                  className="w-20 h-24 sm:w-24 sm:h-28 rounded-2xl border-2 border-[#d4af37] overflow-hidden shadow-lg bg-slate-900 shrink-0 relative group cursor-pointer hover:border-amber-300 transition-all"
+                  title="اضغط لتغيير وضبط الصورة"
+                >
                   <img 
                     src={photoUrl} 
                     alt={memberName} 
                     className="w-full h-full object-cover" 
                     referrerPolicy="no-referrer" 
                   />
-                  <div className="absolute inset-0 bg-[#064e3b]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                    <CheckCircle2 className="w-6 h-6 text-[#d4af37]" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[9px] font-bold">
+                    <Camera className="w-4 h-4 mb-0.5 text-[#d4af37]" />
+                    <span>تغيير</span>
                   </div>
                 </div>
 

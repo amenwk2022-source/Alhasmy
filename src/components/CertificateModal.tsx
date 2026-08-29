@@ -500,7 +500,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 </div>
               </div>
 
-              {/* Photo vs Name Only Toggle */}
+              {/* Photo vs Name Only Toggle & Upload Button */}
               <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-300">
                 <button
                   type="button"
@@ -520,6 +520,17 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 >
                   الاسم فقط (بدون صورة)
                 </button>
+                {showPhoto && (
+                  <button
+                    type="button"
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    className="bg-[#d4af37] hover:bg-amber-500 text-black px-2 py-1 rounded-md text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shadow-xs"
+                    title="تغيير أو رفع صورة جديدة"
+                  >
+                    <Camera className="w-3 h-3 text-[#064e3b]" />
+                    <span>تغيير الصورة</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -631,14 +642,29 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
               {/* Compact Name and Photo Banner */}
               <div className={`cert-member-banner flex flex-row items-center justify-center gap-3 sm:gap-6 bg-gradient-to-r from-transparent via-[#f5f3e9] to-transparent py-1.5 sm:py-2.5 px-4 sm:px-8 rounded-xl border-y border-[#d4af37]/60 ${!showPhoto ? 'text-center' : ''}`}>
-                {showPhoto && currentAvatarUrl && (
-                  <div className="w-12 h-14 sm:w-16 sm:h-20 rounded-xl border-2 border-[#d4af37] overflow-hidden shadow-sm shrink-0 bg-white">
-                    <img 
-                      src={currentAvatarUrl} 
-                      alt={memberName} 
-                      className="w-full h-full object-cover" 
-                      referrerPolicy="no-referrer" 
-                    />
+                {showPhoto && (
+                  <div 
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    className="w-12 h-14 sm:w-16 sm:h-20 rounded-xl border-2 border-[#d4af37] overflow-hidden shadow-sm shrink-0 bg-white cursor-pointer relative group hover:border-[#064e3b] transition-all"
+                    title="اضغط لتغيير الصورة الشخصية"
+                  >
+                    {currentAvatarUrl ? (
+                      <img 
+                        src={currentAvatarUrl} 
+                        alt={memberName} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-emerald-50 flex flex-col items-center justify-center text-emerald-800 text-[9px] font-bold p-1 text-center">
+                        <Camera className="w-4 h-4 mb-0.5 text-[#064e3b]" />
+                        <span>إضافة صورة</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[8px] font-bold transition-opacity">
+                      <Camera className="w-3.5 h-3.5 mb-0.5 text-[#d4af37]" />
+                      <span>تغيير</span>
+                    </div>
                   </div>
                 )}
                 <div className={`space-y-0.5 ${showPhoto ? 'text-right' : 'text-center'}`}>

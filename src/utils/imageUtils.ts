@@ -12,7 +12,8 @@ export interface ImageCropOptions {
 
 /**
  * Loads an image from a File or Data URL, centers and crops it to the target aspect ratio,
- * and returns an optimized data URL.
+ * and returns an optimized data URL. If canvas manipulation fails (e.g. CORS), it gracefully
+ * falls back to the original image Data URL so the upload is never blocked.
  */
 export async function fitImageToAspectRatio(
   imageSource: File | string,
@@ -25,14 +26,49 @@ export async function fitImageToAspectRatio(
     quality = 0.92
   } = options;
 
-  return new Promise((resolve, reject) => {
+  // Helper to read File as Data URL fallback
+  const readFileAsDataUrl = (file: File): Promise<string> => {
+    return new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (typeof e.target?.result === 'string') {
+          res(e.target.result);
+        } else {
+          rej(new Error('Failed to read file as data URL'));
+        }
+      };
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  return new Promise(async (resolve) => {
+    let sourceDataUrl = '';
+    if (typeof imageSource === 'string') {
+      sourceDataUrl = imageSource;
+    } else {
+      try {
+        sourceDataUrl = await readFileAsDataUrl(imageSource);
+      } catch (e) {
+        console.error('FileReader error:', e);
+      }
+    }
+
+    if (!sourceDataUrl) {
+      resolve(typeof imageSource === 'string' ? imageSource : '');
+      return;
+    }
+
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Only set crossOrigin for remote HTTP URLs, not for data: or blob: URLs
+    if (sourceDataUrl.startsWith('http://') || sourceDataUrl.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
       try {
-        const naturalWidth = img.naturalWidth || img.width;
-        const naturalHeight = img.naturalHeight || img.height;
+        const naturalWidth = img.naturalWidth || img.width || 400;
+        const naturalHeight = img.naturalHeight || img.height || 400;
 
         // Calculate crop dimensions to achieve desired aspect ratio while centering
         const sourceRatio = naturalWidth / naturalHeight;
@@ -72,7 +108,9 @@ export async function fitImageToAspectRatio(
         const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          throw new Error('Canvas 2D context unavailable');
+          // Fallback to raw image data URL if canvas 2D context fails
+          resolve(sourceDataUrl);
+          return;
         }
 
         // Use high quality image smoothing
@@ -92,30 +130,25 @@ export async function fitImageToAspectRatio(
           canvas.height
         );
 
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch (canvasErr) {
+          // In case canvas is tainted (CORS on external image), resolve with original source URL
+          console.warn('Canvas export tainted or restricted, using original image URL:', canvasErr);
+          resolve(sourceDataUrl);
+        }
       } catch (err) {
-        reject(err);
+        console.warn('Image crop processing error, fallback to source:', err);
+        resolve(sourceDataUrl);
       }
     };
 
     img.onerror = (err) => {
-      reject(err);
+      console.warn('Image load error during crop, fallback to source:', err);
+      resolve(sourceDataUrl);
     };
 
-    if (typeof imageSource === 'string') {
-      img.src = imageSource;
-    } else {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (typeof e.target?.result === 'string') {
-          img.src = e.target.result;
-        } else {
-          reject(new Error('Failed to read file as data URL'));
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(imageSource);
-    }
+    img.src = sourceDataUrl;
   });
 }

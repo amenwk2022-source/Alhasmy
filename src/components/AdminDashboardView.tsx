@@ -1697,7 +1697,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     {decreeForm.includePhoto ? (
                       <div className="md:col-span-4 bg-white p-4 rounded-2xl border border-amber-200 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
                         <div className="relative">
-                          <div className="w-28 h-36 rounded-xl overflow-hidden border-2 border-[#d4af37] shadow-md bg-slate-100 flex items-center justify-center">
+                          <div 
+                            onClick={() => setIsDecreePhotoModalOpen(true)}
+                            className="w-28 h-36 rounded-xl overflow-hidden border-2 border-[#d4af37] shadow-md bg-slate-100 flex items-center justify-center cursor-pointer group hover:opacity-90 transition-all relative"
+                            title="اضغط لتغيير الصورة"
+                          >
                             {decreeForm.appointeePhotoUrl ? (
                               <img
                                 src={decreeForm.appointeePhotoUrl}
@@ -1707,6 +1711,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                             ) : (
                               <Users className="w-12 h-12 text-slate-300" />
                             )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <Camera className="w-4 h-4 mb-0.5 text-[#d4af37]" />
+                              <span>تغيير الصورة</span>
+                            </div>
                           </div>
                           <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-[#064e3b] text-[#d4af37] flex items-center justify-center text-xs font-bold shadow border border-[#d4af37]">
                             ★
@@ -3532,6 +3540,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       <PhotoUploadModal
         isOpen={isDecreePhotoModalOpen}
         onClose={() => setIsDecreePhotoModalOpen(false)}
+        onSavePhoto={(photoUrl) => {
+          setDecreeForm(prev => ({
+            ...prev,
+            appointeePhotoUrl: photoUrl
+          }));
+          setIsDecreePhotoModalOpen(false);
+        }}
         onPhotoSelected={(photoUrl) => {
           setDecreeForm(prev => ({
             ...prev,
@@ -3540,7 +3555,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           setIsDecreePhotoModalOpen(false);
         }}
         currentPhotoUrl={decreeForm.appointeePhotoUrl}
-        title="رفع وتعديل صورة العضو المعيَّن بالقرار"
+        title="رفع وتعديل صورة العضو المعيَّن / المكرم بالقرار"
+        subtitle="قص وتكييف الصورة لتظهر بدقة عالية داخل الإطار الملكي للقرار"
       />
 
     </div>

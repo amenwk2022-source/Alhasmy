@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, 
   Camera, 
@@ -11,15 +11,18 @@ import {
   Sliders,
   ZoomIn,
   ZoomOut,
+  Trash2,
   Image as ImageIcon
 } from 'lucide-react';
 import { fitImageToAspectRatio } from '../utils/imageUtils';
 
-interface PhotoUploadModalProps {
+export interface PhotoUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentPhotoUrl?: string;
-  onSavePhoto: (photoUrl: string) => void;
+  onSavePhoto?: (photoUrl: string) => void;
+  onPhotoSelected?: (photoUrl: string) => void;
+  onPhotoSave?: (photoUrl: string) => void;
   title?: string;
   subtitle?: string;
 }
@@ -38,6 +41,8 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   onClose,
   currentPhotoUrl,
   onSavePhoto,
+  onPhotoSelected,
+  onPhotoSave,
   title = 'رفع وتعديل الصورة الشخصية الرسمية',
   subtitle = 'يتم تكييف وضبط أبعاد الصورة تلقائياً لتناسب مقاسات كارنيه العضوية والشهادة وسجلات الأنساب'
 }) => {
@@ -52,6 +57,16 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync state whenever modal is opened or currentPhotoUrl changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedImage(currentPhotoUrl || null);
+      setErrorMsg(null);
+      setAutoOptimized(false);
+      setZoomLevel(1);
+    }
+  }, [isOpen, currentPhotoUrl]);
+
   if (!isOpen) return null;
 
   const processAndSetImage = async (source: File | string, ratio = targetRatio) => {
@@ -64,11 +79,24 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
         maxHeight: 1200,
         quality: 0.95
       });
-      setSelectedImage(fittedDataUrl);
-      setAutoOptimized(true);
+      if (fittedDataUrl) {
+        setSelectedImage(fittedDataUrl);
+        setAutoOptimized(true);
+      }
     } catch (err: any) {
       console.error('Failed to crop and fit image:', err);
-      setErrorMsg('تعذر معالجة الصورة، يرجى تجربة صورة أخرى.');
+      // Even if canvas fitting fails, read raw file if it was a File
+      if (source instanceof File) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (typeof e.target?.result === 'string') {
+            setSelectedImage(e.target.result);
+          }
+        };
+        reader.readAsDataURL(source);
+      } else if (typeof source === 'string') {
+        setSelectedImage(source);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -83,6 +111,8 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
       }
       processAndSetImage(file, targetRatio);
     }
+    // Clear input value so selecting the same file again triggers onChange
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -104,9 +134,17 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
 
   const handleConfirm = () => {
     if (selectedImage) {
-      onSavePhoto(selectedImage);
+      if (onSavePhoto) onSavePhoto(selectedImage);
+      if (onPhotoSelected) onPhotoSelected(selectedImage);
+      if (onPhotoSave) onPhotoSave(selectedImage);
       onClose();
     }
+  };
+
+  const handleRemovePhoto = () => {
+    setSelectedImage(null);
+    setAutoOptimized(false);
+    setErrorMsg(null);
   };
 
   return (
@@ -275,6 +313,14 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                 >
                   <Camera className="w-3.5 h-3.5 text-[#064e3b]" />
                   <span>اختيار صورة أخرى من جهازك</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                  <span>إلغاء الصورة</span>
                 </button>
               </div>
             </div>

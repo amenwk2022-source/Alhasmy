@@ -375,6 +375,10 @@ export const EditIssuedDocModal: React.FC<EditIssuedDocModalProps> = ({
       <PhotoUploadModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
+        onSavePhoto={(newPhotoUrl) => {
+          setFormData(prev => prev ? ({ ...prev, avatarUrl: newPhotoUrl }) : null);
+          setIsPhotoModalOpen(false);
+        }}
         onPhotoSave={(newPhotoUrl) => {
           setFormData(prev => prev ? ({ ...prev, avatarUrl: newPhotoUrl }) : null);
           setIsPhotoModalOpen(false);
